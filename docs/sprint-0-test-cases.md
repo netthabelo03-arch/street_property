@@ -12,7 +12,7 @@ Run on a phone (Android and iPhone) after the setup in the README. Record failur
 | S0-06 | Log in | Log out, then log in with a wrong password, then the right one | Wrong: "Email or password is incorrect." Right: back on Explore. |
 | S0-07 | Forgot password | Forgot password, enter the email, open the link | The new-password screen opens; after saving, you are signed in. |
 | S0-08 | Profile | Profile tab: set a name, choose Owner, Save | "Saved."; the top bar shows the first name and an "Owner" chip. Reload: still saved. |
-| S0-09 | Explore as owner | Back to Explore as an owner | The empty state says you will be able to list your place soon. |
+| S0-09 | Explore as owner | Back to Explore as an owner | The empty state invites you to list your place, with List your place and My listings buttons (from Sprint 1). |
 | S0-10 | Protected screen | Log out, then open `#/profile` | You are sent to Log in; after logging in you land on Profile. |
 | S0-11 | Tabs | Tap Map, Saved, Enquiries | Nothing happens; they are greyed out (coming soon). |
 | S0-12 | Offline | Turn on airplane mode, reload | The app opens from its saved copy and shows the yellow offline bar. |
