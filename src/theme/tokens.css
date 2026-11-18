@@ -1,21 +1,26 @@
-/* Street Property theme: warm off-white, ink, deep teal. Every screen takes its colours from here. */
+/* Street Property theme: charcoal, with deep teal and a gold street line.
+   Every screen takes its colours from here. */
 :root {
-  --color-ground: #F6F3EC;
-  --color-panel: #FFFFFF;
-  --color-surface: #FFFFFF;
-  --color-surface-raised: #EAE5D8;
-  --color-line: #E4DFD2;
-  --color-line-strong: #D9D4C7;
-  --color-text: #15191E;
-  --color-text-soft: #2E3338;
-  --color-text-muted: #5C6168;
-  --color-accent: #0E6B5C;
-  --color-accent-hover: #09493F;
+  --color-ground: #16191D;
+  --color-panel: #20242A;
+  --color-surface: #20242A;
+  --color-surface-raised: #2B3037;
+  --color-line: #2F343B;
+  --color-line-strong: #3A4047;
+  --color-text: #F2F0EA;
+  --color-text-soft: #D9DCDF;
+  --color-text-muted: #9AA0A6;
+  --color-accent: #157F6A;        /* buttons and fills, with white text */
+  --color-accent-hover: #1A9580;
+  --color-link: #5CCFB7;          /* teal for words on the dark ground */
+  --color-link-hover: #7FD1BC;
   --color-on-accent: #FFFFFF;
-  --color-success-bg: #DCEBE6;
-  --color-danger: #B4442B;
-  --color-danger-bg: #F6D9D2;
-  --color-warning: #6B4A08;
+  --color-success-bg: #173A33;
+  --color-success-text: #7FD1BC;
+  --color-danger: #F09A86;
+  --color-danger-bg: #3D201B;
+  --color-warning: #F2C66D;
+  --color-warning-bg: #3A2F14;
   --color-gold: #F2B544;
 
   --font-heading: 'Space Grotesk', system-ui, sans-serif;
@@ -24,4 +29,5 @@
   --radius-control: 14px;
   --radius-card: 18px;
   --touch-target: 44px;
+  color-scheme: dark;
 }
