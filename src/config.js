@@ -6,8 +6,8 @@
 // While they are empty the app opens, and the account screens say that
 // accounts are not switched on yet.
 
-export const SUPABASE_URL = '';
-export const SUPABASE_PUBLISHABLE_KEY = '';
+export const SUPABASE_URL = 'https://oyydaebikpdrbaaiquhi.supabase.co';
+export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_QnIaFl9OAfZHALaJ43AWew_iVgd4gdV';
 
 /** Whether the app has been connected to its Supabase project yet. */
 export function isConfigured() {

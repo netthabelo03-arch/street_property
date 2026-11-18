@@ -47,8 +47,10 @@ test('the three roles: renter, owner and agent; only owners and agents list plac
   assert.match(findRole('agent').about, /Fidelity Fund Certificate/);
 });
 
-test('until it is connected to Supabase, the app says accounts are not switched on', () => {
-  assert.equal(isConfigured(), false);
+test('the app is connected to its Supabase project with a public key only', () => {
+  assert.equal(isConfigured(), true);
+  const cfg = read('../src/config.js');
+  assert.doesNotMatch(cfg, /sb_secret_|service_role/);
 });
 
 test('the database script matches the app', () => {
