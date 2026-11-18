@@ -1,27 +1,46 @@
 // Turns the part of the address after "#" into a screen to show, and decides
 // which screens need a signed-in person.
 //
-// Anyone can look around Explore ("#/"). The profile needs an account: a
-// signed-out person is sent to log in and brought back afterwards.
+// Anyone can look around Explore ("#/"). The profile, listing a place and the
+// review queue need an account: a signed-out person is sent to log in and
+// brought back afterwards.
+//
+// Addresses:
+//   #/my-listings            the owner's listings
+//   #/list/new               start a listing (step 1)
+//   #/list/<id>              a listing's details and photos (step 1)
+//   #/list/<id>/tour         film the video tour (step 2)
+//   #/list/<id>/send         check and send for review (step 3)
+//   #/review                 the admins' review queue
+//   #/review/<id>            check one listing
+
+import { isUuid } from './listings/rules.js';
 
 const EXPLORE = { screen: 'explore' };
 
 /** Screens whose address is just their name, like "#/signin". */
-const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy'];
+const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review'];
 
 /** Screens that only a signed-in person may open. */
-export const PROTECTED_SCREENS = ['profile', 'new-password'];
+export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing'];
 
 /** Screens that make no sense once signed in. */
 export const GUEST_SCREENS = ['signup', 'signin', 'forgot'];
 
 /**
  * @param {string} hash the address hash, for example "#/signin"
- * @returns {{ screen: string }}
+ * @returns {{ screen: string, id?: string }}
  */
 export function parseRoute(hash) {
   const parts = String(hash ?? '').replace(/^#/, '').split('/').filter(Boolean);
   if (parts.length === 1 && NAMED_SCREENS.includes(parts[0])) return { screen: parts[0] };
+  if (parts[0] === 'list') {
+    if (parts.length === 2 && parts[1] === 'new') return { screen: 'list-new' };
+    if (parts.length === 2 && isUuid(parts[1])) return { screen: 'list-details', id: parts[1].toLowerCase() };
+    if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'tour') return { screen: 'list-tour', id: parts[1].toLowerCase() };
+    if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'send') return { screen: 'list-send', id: parts[1].toLowerCase() };
+  }
+  if (parts[0] === 'review' && parts.length === 2 && isUuid(parts[1])) return { screen: 'review-listing', id: parts[1].toLowerCase() };
   // Anything unknown falls back to Explore instead of a blank page.
   return EXPLORE;
 }
@@ -38,7 +57,15 @@ export function resolveRoute(route, signedIn) {
 
 /** @returns {string} the address hash for a route */
 export function hashFor(route) {
-  return route.screen === 'explore' ? '#/' : `#/${route.screen}`;
+  switch (route.screen) {
+    case 'explore': return '#/';
+    case 'list-new': return '#/list/new';
+    case 'list-details': return `#/list/${route.id}`;
+    case 'list-tour': return `#/list/${route.id}/tour`;
+    case 'list-send': return `#/list/${route.id}/send`;
+    case 'review-listing': return `#/review/${route.id}`;
+    default: return `#/${route.screen}`;
+  }
 }
 
 /**
@@ -55,6 +82,6 @@ export function safeNext(hash) {
 
 /** Which bottom-bar tab a screen belongs to, so it can be highlighted. */
 export function tabFor(screen) {
-  if (screen === 'profile') return 'profile';
+  if (['profile', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing'].includes(screen)) return 'profile';
   return 'explore';
 }

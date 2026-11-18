@@ -12,6 +12,11 @@ import { renderForgot } from './screens/forgot.js';
 import { renderNewPassword } from './screens/newpassword.js';
 import { renderProfile } from './screens/profile.js';
 import { renderTerms, renderPrivacy } from './screens/legal.js';
+import { renderMyListings } from './screens/mylistings.js';
+import { renderListDetails } from './screens/listdetails.js';
+import { renderListTour } from './screens/listtour.js';
+import { renderListSend } from './screens/listsend.js';
+import { renderReviewQueue, renderReviewListing } from './screens/review.js';
 import { forgetViewer } from './viewer.js';
 
 const SCREENS = {
@@ -23,6 +28,13 @@ const SCREENS = {
   profile: renderProfile,
   terms: renderTerms,
   privacy: renderPrivacy,
+  'my-listings': renderMyListings,
+  'list-new': renderListDetails,
+  'list-details': renderListDetails,
+  'list-tour': renderListTour,
+  'list-send': renderListSend,
+  review: renderReviewQueue,
+  'review-listing': renderReviewListing,
 };
 
 const root = document.getElementById('app');
@@ -54,7 +66,7 @@ async function show() {
 
   // A slow screen may finish after the person has moved on: only draw the newest.
   const thisRender = ++latestRender;
-  const pending = SCREENS[route.screen]({ session, navigate });
+  const pending = SCREENS[route.screen]({ session, navigate, route });
   if (pending instanceof Promise && root.childElementCount === 0) root.replaceChildren(...loadingScreen());
   let content;
   try {

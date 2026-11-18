@@ -1,6 +1,6 @@
 // Explore: the home screen. Renters choose rent or buy and search by street,
-// suburb or township. Listings arrive with the next sprints; until then the
-// screen explains what is coming and invites owners to sign up.
+// suburb or township. Live listings show here from Sprint 2; until then the
+// screen explains what is coming and sends owners to list their place.
 
 import { loadViewer } from '../viewer.js';
 import { canList } from '../roles.js';
@@ -43,8 +43,12 @@ export async function renderExplore({ session }) {
   const empty = el('div', { class: 'empty' }, [
     el('p', { class: 'empty__title', text: 'No places listed yet' }),
     el('p', { class: 'lead', text: owner
-      ? 'You will be able to list your place here soon. Every listing is checked before it goes live, so renters can trust it.'
+      ? 'List your place with photos and a short video tour filmed at the address. Every listing is checked before it goes live, so renters can trust it.'
       : 'Verified places will show here soon. Every listing is checked before it goes live, so you never pay a fake landlord.' }),
+    ...(owner ? [
+      el('a', { href: '#/list/new', class: 'button button--primary', text: 'List your place' }),
+      el('a', { href: '#/my-listings', class: 'button button--quiet', text: 'My listings' }),
+    ] : []),
     ...(session ? [] : [el('a', { href: '#/signup', class: 'button button--primary', text: 'Create a free account' })]),
   ]);
 

@@ -1,6 +1,6 @@
 // Profile: a name and how the person uses the app (renter, owner or agent).
 
-import { ROLES } from '../roles.js';
+import { ROLES, canList } from '../roles.js';
 import { updateProfile } from '../auth/api.js';
 import { loadViewer, forgetViewer } from '../viewer.js';
 import { checkOptionalName } from '../auth/validate.js';
@@ -74,5 +74,16 @@ export async function renderProfile({ session }) {
     });
   });
 
-  return [bar, heading, ...(admin ? [el('p', { class: 'chip chip--waiting', text: 'Admin' })] : []), form, tabBar('profile')];
+  const shortcuts = [
+    ...(canList(profile.role) ? [el('a', { href: '#/my-listings', class: 'button button--quiet', text: 'My listings' })] : []),
+    ...(admin ? [el('a', { href: '#/review', class: 'button button--quiet', text: 'Review queue' })] : []),
+  ];
+  return [
+    bar,
+    heading,
+    ...(admin ? [el('p', { class: 'chip chip--waiting', text: 'Admin' })] : []),
+    ...(shortcuts.length ? [el('div', { class: 'stack' }, shortcuts)] : []),
+    form,
+    tabBar('profile'),
+  ];
 }
