@@ -1,0 +1,11 @@
+{
+  "name": "Street Property",
+  "short_name": "Street Property",
+  "description": "Find a place to rent or buy, street by street.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F6F3EC",
+  "theme_color": "#F6F3EC",
+  "icons": [{ "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

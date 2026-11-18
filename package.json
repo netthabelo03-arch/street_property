@@ -1,0 +1,10 @@
+{
+  "name": "street-property",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Street Property: find a place to rent or buy in South Africa, street by street.",
+  "scripts": {
+    "test": "node --test"
+  }
+}
