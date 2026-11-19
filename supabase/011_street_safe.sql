@@ -12,6 +12,7 @@
 -- them through deal_view.
 --
 -- Run this once in the Supabase dashboard (SQL Editor) after 010_deals.sql.
+-- After 012_deposit_plans.sql has run, do not run this file again: 012 replaces deal_view.
 -- Safe to run again.
 
 -- TradeSafe accounts (a TradeSafe "token" per person) -----------------------------

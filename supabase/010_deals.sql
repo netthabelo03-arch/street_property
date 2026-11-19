@@ -14,6 +14,8 @@
 -- Street Property opens to the public.
 --
 -- Run this once in the Supabase dashboard (SQL Editor) after 009_reports_email.sql.
+-- After 012_deposit_plans.sql has run, do not run this file again: 012 replaces
+-- send_lease, lease_text_for and deal_view.
 -- Safe to run again.
 
 -- "We met" --------------------------------------------------------------------
