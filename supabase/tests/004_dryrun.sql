@@ -11,7 +11,7 @@ declare
   far uuid;
   n bigint;
   txt text;
-  lat double precision;
+  got_lat double precision;
   failed boolean;
   checks int := 0;
 begin
@@ -31,8 +31,8 @@ begin
   values (a, 'outside', owner_id || '/' || a || '/tour/o.webm', 15, -26.238512, 27.908634, 8, 'AAAA');
 
   -- 1. The public street and rounded spot are worked out by the database.
-  select street_public, approx_lat into txt, lat from public.listings where id = a;
-  if txt <> 'Ngakane Street' or lat <> -26.239 then raise exception 'check 1 failed: % %', txt, lat; end if;
+  select street_public, approx_lat into txt, got_lat from public.listings where id = a;
+  if txt <> 'Ngakane Street' or got_lat <> -26.239 then raise exception 'check 1 failed: % %', txt, got_lat; end if;
   if public.public_street('4th Avenue') <> '4th Avenue' or public.public_street('No. 7 Mthimkhulu Street') <> 'Mthimkhulu Street'
      or public.public_street('15-17 Main Road') <> 'Main Road' or public.public_street('42') is not null then
     raise exception 'check 1 failed: public_street rules';
@@ -55,7 +55,7 @@ begin
   -- 3. Nor the exact spot.
   failed := false;
   begin
-    select filmed_lat into lat from public.listings where id = a;
+    select filmed_lat into got_lat from public.listings where id = a;
   exception when insufficient_privilege then failed := true;
   end;
   if not failed then raise exception 'check 3 failed: filmed_lat readable'; end if;
@@ -64,7 +64,7 @@ begin
   -- 4. Nor where the clips were filmed; the clips themselves still play.
   failed := false;
   begin
-    select lat into lat from public.tour_clips where listing_id = a limit 1;
+    select lat into got_lat from public.tour_clips where listing_id = a limit 1;
   exception when insufficient_privilege then failed := true;
   end;
   if not failed then raise exception 'check 4 failed: clip lat readable'; end if;
@@ -78,8 +78,8 @@ begin
   checks := checks + 1;
 
   -- 6. Search returns the public street and rounded spot, and searches by street name.
-  select street_public, approx_lat into txt, lat from public.search_listings('rent', 'ngakane');
-  if txt <> 'Ngakane Street' or lat <> -26.239 then raise exception 'check 6 failed: % %', txt, lat; end if;
+  select street_public, approx_lat into txt, got_lat from public.search_listings('rent', 'ngakane');
+  if txt <> 'Ngakane Street' or got_lat <> -26.239 then raise exception 'check 6 failed: % %', txt, got_lat; end if;
   checks := checks + 1;
 
   -- 7. A house number cannot be used to find a house.
