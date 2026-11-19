@@ -36,3 +36,15 @@ test('text is readable (at least 4.5 to 1) on every background it sits on', () =
     assert.ok(ratio >= 4.5, `${fore} on ${back}: ${ratio.toFixed(2)}`);
   }
 });
+
+test('every comment in the style sheets is closed, so no rules are swallowed', () => {
+  for (const file of ['../src/app.css', '../src/street.css', '../src/theme/tokens.css', '../demo/demo.css']) {
+    const css = readFileSync(new URL(file, import.meta.url), 'utf8');
+    for (const comment of css.match(/\/\*[\s\S]*?\*\//g) ?? []) {
+      assert.ok(!comment.slice(2).includes('/*'), `${file}: a comment opens inside another one: ${comment.slice(0, 60)}`);
+    }
+    const opens = (css.match(/\/\*/g) ?? []).length;
+    const closes = (css.match(/\*\//g) ?? []).length;
+    assert.equal(opens, closes, `${file}: ${opens} comments opened, ${closes} closed`);
+  }
+});

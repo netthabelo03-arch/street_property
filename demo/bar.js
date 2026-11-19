@@ -137,7 +137,7 @@ function drawHelpers() {
 const bar = make('section', { class: 'demo-bar', 'aria-label': 'Demo controls' }, [
   make('div', { class: 'demo-bar__top' }, [
     make('span', { class: 'demo-bar__badge', text: 'Demo' }),
-    make('span', { class: 'demo-bar__note', text: 'Sample data · nothing is saved' }),
+    make('span', { class: 'demo-bar__note', text: 'Sample data, nothing saved' }),
     guideToggle,
     restart,
   ]),
