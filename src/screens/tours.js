@@ -5,7 +5,7 @@
 // are always in reach.
 
 import { searchListings } from '../explore/api.js';
-import { loadFilters, publicPlace } from '../explore/filters.js';
+import { loadFilters, publicPlace, activeCount } from '../explore/filters.js';
 import { listClips } from '../listings/api.js';
 import { listingTitle, formatRands, priceLine } from '../listings/rules.js';
 import { savedIds, saveListing, unsaveListing } from '../saved/api.js';
@@ -293,9 +293,12 @@ export async function renderTours({ session, navigate }) {
   window.addEventListener('hashchange', onHash);
 
   if (places.length === 0) {
+    const filtered = activeCount(filters) > 0 || filters.text.trim() !== '';
     empty.replaceChildren(
-      el('p', { class: 'tour-full__end-title', text: 'No tours match yet' }),
-      el('p', { class: 'lead', text: `Nothing ${filters.mode === 'rent' ? 'to rent' : 'for sale'} matches your search and filters. Try another area or fewer filters.` }),
+      el('p', { class: 'tour-full__end-title', text: filtered ? 'No tours match yet' : 'No tours yet' }),
+      el('p', { class: 'lead', text: filtered
+        ? `Nothing ${filters.mode === 'rent' ? 'to rent' : 'for sale'} matches your search and filters. Try another area or fewer filters.`
+        : 'Tours show here as soon as owners list their places and they are checked.' }),
       el('a', { href: '#/filters', class: 'button button--primary', text: 'Change filters' }),
       el('a', { href: '#/', class: 'button button--quiet', text: 'Back to Explore' }),
     );
