@@ -4,10 +4,10 @@
 
 import { loadViewer } from '../viewer.js';
 import {
-  getDeal, sendLease, signLease, cancelDeal, inspection, addRoomPhoto, setRoomNote, signInspection, confirmKeys, streetSafe,
+  getDeal, sendLease, signLease, cancelDeal, inspection, addRoomPhoto, setRoomNote, signInspection, confirmKeys, streetSafe, depositParts,
 } from '../deals/api.js';
 import {
-  dealSteps, nextAction, checkLeaseTerms, checkSignatureName, roomName, roomProgress, photoStamp, safeTotal,
+  dealSteps, nextAction, checkLeaseTerms, checkSignatureName, roomName, roomProgress, photoStamp, safeTotal, depositPlan, DEPOSIT_PARTS,
   leaseFingerprint, shortFingerprint, LEASE_MONTHS, SPECIAL_TERMS_MAX, ROOM_NOTE_MAX, ROOM_PHOTOS_MAX,
 } from '../deals/rules.js';
 import { formatRands, listingTitle } from '../listings/rules.js';
@@ -75,7 +75,53 @@ const STATE_CHIPS = {
 const synced = new Set();
 function needsSync(deal) {
   if (deal.safe_state === 'waiting') return true;
+  if (deal.deposit_parts > 1 && deal.status === 'moved_in') return true;
   return deal.safe_state === 'paid' && ['moved_in', 'cancelled'].includes(deal.status);
+}
+
+const PART_WORDS = { none: 'To pay', waiting: 'Paying', paid: 'Received', released: 'Paid to the owner', refunded: 'Refunded' };
+
+/** The deposit plan: part 1 rides on the move-in payment, later parts are paid after moving in. */
+async function planCard(deal, owner, message) {
+  const later = await depositParts(deal.id).catch(() => []);
+  const firstState = deal.safe_state === 'none' ? 'To pay' : PART_WORDS[deal.safe_state] ?? '';
+  const rows = [el('li', { class: 'plan-row' }, [
+    el('span', { class: 'plan-row__what', text: `Part 1 · ${formatRands(deal.first_deposit_rands ?? 0)}` }),
+    el('span', { class: 'plan-row__when', text: 'With the move-in payment' }),
+    el('span', { class: `chip ${['released', 'paid'].includes(deal.safe_state) ? 'chip--good' : ''}`, text: firstState }),
+  ])];
+  for (const part of later) {
+    const row = el('li', { class: 'plan-row' }, [
+      el('span', { class: 'plan-row__what', text: `Part ${part.part} · ${formatRands(part.amount_rands)}` }),
+      el('span', { class: 'plan-row__when', text: `Due ${longDate(part.due_date)}` }),
+      el('span', { class: `chip ${['released', 'paid'].includes(part.safe_state) ? 'chip--good' : ''}`, text: PART_WORDS[part.safe_state] }),
+    ]);
+    if (!owner && deal.status === 'moved_in' && ['none', 'waiting'].includes(part.safe_state)) {
+      const payPart = el('button', { type: 'button', class: 'button button--quiet', text: `Pay part ${part.part}` });
+      payPart.addEventListener('click', () => whileBusy(payPart, 'Opening TradeSafe…', async () => {
+        message.clear();
+        try {
+          const answer = await streetSafe('pay_part', { deal: deal.id, part: part.part });
+          if (answer?.waiting) {
+            message.show('Street Safe payments are not switched on yet.');
+            return;
+          }
+          window.location.assign(answer.url);
+        } catch (problem) {
+          message.show(friendlyListingError(problem));
+        }
+      }));
+      row.append(payPart);
+    }
+    rows.push(row);
+  }
+  return el('section', { class: 'stack stack--tight plan' }, [
+    el('h2', { class: 'section__title', text: `Deposit in ${deal.deposit_parts} parts` }),
+    el('ol', { class: 'plan-list' }, rows),
+    el('p', { class: 'field__hint', text: owner
+      ? 'Later parts are paid through Street Safe and passed to you as soon as TradeSafe has them.'
+      : 'Pay later parts here, with the rent. They go to the owner as soon as TradeSafe has them.' }),
+  ]);
 }
 
 export async function renderDeal({ session, route }) {
@@ -84,7 +130,10 @@ export async function renderDeal({ session, route }) {
   if (needsSync(deal) && !synced.has(deal.id)) {
     synced.add(deal.id);
     streetSafe('sync', { deal: deal.id })
-      .then((answer) => { if (answer?.state && answer.state !== deal.safe_state) reload(); })
+      .then((answer) => {
+        const partMoved = Object.values(answer?.parts ?? {}).some((state) => ['paid', 'released'].includes(state));
+        if ((answer?.state && answer.state !== deal.safe_state) || partMoved) reload();
+      })
       .catch(() => {});
   }
   const owner = deal.my_side === 'owner';
@@ -159,6 +208,8 @@ export async function renderDeal({ session, route }) {
     ]);
   }
 
+  const plan = deal.deposit_parts > 1 && deal.sent_at ? await planCard(deal, owner, message) : null;
+
   return [
     topBar({ profile, session }),
     el('a', { href: `#/enquiries/${deal.enquiry_id}`, class: 'text-link', text: '← Conversation' }),
@@ -168,6 +219,7 @@ export async function renderDeal({ session, route }) {
     el('p', { class: `message ${deal.status === 'cancelled' ? 'message--error' : 'message--success'}`, text: nextAction(deal) }),
     ...actions,
     list,
+    ...(plan ? [plan] : []),
     el('p', { class: 'note', text: owner
       ? 'Never hand over keys before the lease and the move-in check are signed in the app.'
       : 'Pay only through Street Safe, after the lease is signed. Street Property will never ask you to pay into a personal account.' }),
@@ -190,6 +242,25 @@ function leaseForm(deal, message) {
     if (m === Number(deal.lease_months ?? 12)) option.selected = true;
     return option;
   }));
+  const parts = el('select', { id: 'lease-parts', class: 'input' }, DEPOSIT_PARTS.map((n) => {
+    const choice = el('option', { value: String(n), text: n === 1 ? 'All before moving in' : `In ${n} parts` });
+    if (n === Number(deal.deposit_parts ?? 1)) choice.selected = true;
+    return choice;
+  }));
+  const planLine = el('p', { class: 'field__hint', 'aria-live': 'polite' });
+  const showPlan = () => {
+    const count = Number(parts.value);
+    const total = Number(deposit.value.replace(/\s/g, '')) || 0;
+    if (count < 2 || !total) {
+      planLine.textContent = 'A plan lets the renter pay the deposit over 2 or 3 months, with the rent.';
+      return;
+    }
+    const plan = depositPlan(total, count, start.value || today);
+    planLine.textContent = plan.map((p) => (p.part === 1 ? `${formatRands(p.amount)} before moving in` : `${formatRands(p.amount)} on ${p.due ? longDate(p.due) : '…'}`)).join(', ') + '.';
+  };
+  for (const input of [deposit, start, parts]) input.addEventListener('input', showPlan);
+  parts.addEventListener('change', showPlan);
+  showPlan();
   const special = el('textarea', { id: 'lease-special', class: 'input input--area', rows: '3', maxlength: String(SPECIAL_TERMS_MAX), placeholder: 'For example: no smoking inside; the garden service is included.' });
   special.value = deal.special_terms ?? '';
   const send = el('button', { type: 'submit', class: 'button button--primary', text: 'Send the lease to sign' });
@@ -201,6 +272,7 @@ function leaseForm(deal, message) {
   const form = el('form', { class: 'stack', novalidate: '' }, [
     el('div', { class: 'two-up' }, [fieldOf('lease-rent', 'Rent a month (R)', rent), fieldOf('lease-deposit', 'Deposit (R)', deposit)]),
     el('div', { class: 'two-up' }, [fieldOf('lease-start', 'Start date', start), fieldOf('lease-months', 'Length', months)]),
+    el('div', { class: 'field' }, [el('label', { for: 'lease-parts', class: 'field__label', text: 'Deposit' }), parts, planLine]),
     fieldOf('lease-special', 'Special terms (optional)', special, 'The standard clauses cannot be changed. Anything extra you agreed goes here, in plain words.'),
     send,
     el('p', { class: 'field__hint', text: 'Once sent, the lease cannot be changed. If something is wrong, call the deal off and start again.' }),
@@ -208,7 +280,7 @@ function leaseForm(deal, message) {
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     message.clear();
-    const values = { rent: rent.value.replace(/\s/g, ''), deposit: deposit.value.replace(/\s/g, ''), start: start.value, months: months.value, special: special.value.trim() };
+    const values = { rent: rent.value.replace(/\s/g, ''), deposit: deposit.value.replace(/\s/g, ''), start: start.value, months: months.value, special: special.value.trim(), parts: parts.value };
     const errors = checkLeaseTerms(values, today);
     const first = Object.values(errors)[0];
     if (first) {
@@ -271,7 +343,7 @@ export async function renderDealLease({ session, route }) {
     ...head,
     el('div', { class: 'lease-terms' }, [
       el('p', {}, [el('strong', { text: formatRands(deal.rent_rands) }), el('span', { text: ' a month' })]),
-      el('p', { text: `Deposit ${deal.deposit_rands ? formatRands(deal.deposit_rands) : 'none'}` }),
+      el('p', { text: `Deposit ${deal.deposit_rands ? formatRands(deal.deposit_rands) : 'none'}${deal.deposit_parts > 1 ? ` in ${deal.deposit_parts} parts` : ''}` }),
       el('p', { text: `From ${longDate(deal.start_date)}, ${deal.lease_months} months` }),
     ]),
     el('pre', { class: 'lease-text', tabindex: '0', 'aria-label': 'The lease', text: deal.lease_text }),

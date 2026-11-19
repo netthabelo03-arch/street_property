@@ -76,3 +76,32 @@ test('S9: payment problems have plain sentences', () => {
     assert.ok(text && !/hint|undefined/i.test(text), hint);
   }
 });
+
+test('S9: a deposit plan matches the database: equal parts, the first takes the rest, a month apart', async () => {
+  const { depositPlan, checkLeaseTerms } = await import('../src/deals/rules.js');
+  assert.deepEqual(depositPlan(6500, 3, '2027-01-01'), [
+    { part: 1, amount: 2168, due: '2027-01-01' },
+    { part: 2, amount: 2166, due: '2027-02-01' },
+    { part: 3, amount: 2166, due: '2027-03-01' },
+  ]);
+  assert.deepEqual(depositPlan(6500, 1, '2027-01-01'), [{ part: 1, amount: 6500, due: '2027-01-01' }]);
+  // Like Postgres: 31 January plus a month is 28 February.
+  assert.equal(depositPlan(6000, 2, '2027-01-31')[1].due, '2027-02-28');
+  const ok = { rent: '6500', deposit: '6500', start: '2026-12-01', months: '12', special: '', parts: '3' };
+  assert.deepEqual(checkLeaseTerms(ok, '2026-11-19'), {});
+  assert.ok(checkLeaseTerms({ ...ok, parts: '4' }, '2026-11-19').parts);
+  assert.ok(checkLeaseTerms({ ...ok, deposit: '500', parts: '2' }, '2026-11-19').parts);
+  const sql = read('../supabase/012_deposit_plans.sql');
+  assert.match(sql, /public\.deposit_plan\(p_deposit, p_parts, p_start\) p where p\.part > 1/);
+  assert.match(read('../supabase/tests/012_dryrun.sql'), /all 8 checks passed/);
+});
+
+test('S9: the move-in payment carries only the first part of a plan; later parts go straight to the owner', async () => {
+  const { safeTotal } = await import('../src/deals/rules.js');
+  assert.equal(safeTotal({ rent_rands: 6500, deposit_rands: 6500, first_deposit_rands: 2168 }), 8668);
+  const fn = read('../supabase/functions/street-safe/index.ts');
+  assert.match(fn, /firstDepositPart/);
+  assert.match(fn, /action === 'pay_part'/);
+  assert.match(fn, /if \(deal\.status !== 'moved_in'\) throw new UserProblem\('part_after_keys'\)/);
+  assert.match(fn, /deposit_payments'\)\.select\([^)]*\)\.eq\('safe_tx', txId\)/);
+});

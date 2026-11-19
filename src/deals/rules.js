@@ -2,6 +2,7 @@
 // supabase/010_deals.sql enforces the same rules.
 
 export const LEASE_MONTHS = [6, 12, 24, 36];
+export const DEPOSIT_PARTS = [1, 2, 3];
 export const SPECIAL_TERMS_MAX = 1000;
 export const ROOM_NOTE_MAX = 500;
 export const ROOM_PHOTOS_MAX = 12;
@@ -94,11 +95,32 @@ export function nextAction(deal) {
   return owner ? `Waiting for ${other} to confirm they have the keys.` : 'Got the keys? Confirm it here.';
 }
 
-/** The total going into Street Safe: the first month's rent and the deposit. */
+/** The move-in payment into Street Safe: the first month's rent and the deposit (or its first part). */
 export function safeTotal(deal) {
   const rent = Number(deal.safe_rent_rands ?? deal.rent_rands ?? 0);
-  const deposit = Number(deal.safe_deposit_rands ?? deal.deposit_rands ?? 0);
+  const deposit = Number(deal.safe_deposit_rands ?? deal.first_deposit_rands ?? deal.deposit_rands ?? 0);
   return rent + deposit;
+}
+
+/**
+ * A deposit plan, as the database works it out (deposit_plan in
+ * 012_deposit_plans.sql): equal parts in whole rands, the first part takes
+ * what is left over; part 1 before moving in, part n with the rent n-1 months
+ * after the start date.
+ */
+export function depositPlan(deposit, parts, start) {
+  const total = Number(deposit) || 0;
+  const count = Math.max(1, Number(parts) || 1);
+  const each = Math.floor(total / count);
+  return Array.from({ length: count }, (_, i) => {
+    const due = new Date(`${start}T00:00:00Z`);
+    const day = due.getUTCDate();
+    due.setUTCDate(1);
+    due.setUTCMonth(due.getUTCMonth() + i);
+    const last = new Date(Date.UTC(due.getUTCFullYear(), due.getUTCMonth() + 1, 0)).getUTCDate();
+    due.setUTCDate(Math.min(day, last));
+    return { part: i + 1, amount: i === 0 ? total - each * (count - 1) : each, due: Number.isNaN(due.getTime()) ? null : due.toISOString().slice(0, 10) };
+  });
 }
 
 // Payouts --------------------------------------------------------------------------
@@ -155,7 +177,7 @@ export function payoutLine(account) {
 }
 
 /** The same checks the database makes before the lease is sent. */
-export function checkLeaseTerms({ rent, deposit, start, months, special }, today) {
+export function checkLeaseTerms({ rent, deposit, start, months, special, parts = 1 }, today) {
   const errors = {};
   const rentNumber = Number(rent);
   if (!Number.isInteger(rentNumber) || rentNumber < 300 || rentNumber > 500000) errors.rent = 'Enter the monthly rent, from R300.';
@@ -167,6 +189,10 @@ export function checkLeaseTerms({ rent, deposit, start, months, special }, today
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(start)) || Number.isNaN(days) || days < 0 || days > 365) errors.start = 'Choose a start date in the next 12 months.';
   if (!LEASE_MONTHS.includes(Number(months))) errors.months = 'Choose 6, 12, 24 or 36 months.';
   if (String(special ?? '').length > SPECIAL_TERMS_MAX) errors.special = `Keep special terms under ${SPECIAL_TERMS_MAX} characters.`;
+  const count = Number(parts ?? 1);
+  if (!DEPOSIT_PARTS.includes(count)) errors.parts = 'Choose 1, 2 or 3 deposit parts.';
+  else if (count > 1 && (Number(deposit) || 0) < 300 * count) errors.parts = 'A deposit paid in parts must be at least R300 a part.';
+  else if (count > Number(months)) errors.parts = 'The lease is shorter than the deposit plan.';
   return errors;
 }
 

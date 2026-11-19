@@ -44,7 +44,7 @@ export async function getDeal(id) {
   return rows[0] ?? null;
 }
 
-export async function sendLease(id, { rent, deposit, start, months, special }) {
+export async function sendLease(id, { rent, deposit, start, months, special, parts = 1 }) {
   const client = await getClient();
   check(await client.rpc('send_lease', {
     p_deal: id,
@@ -53,6 +53,7 @@ export async function sendLease(id, { rent, deposit, start, months, special }) {
     p_start: start,
     p_months: Number(months),
     p_special: special || null,
+    p_parts: Number(parts) || 1,
   }));
 }
 
@@ -139,4 +140,10 @@ export async function streetSafe(action, body = {}) {
 export async function myPayoutAccount(userId) {
   const client = await getClient();
   return check(await client.from('safe_accounts').select('bank, account_last4, account_type, can_receive, updated_at').eq('user_id', userId).maybeSingle());
+}
+
+/** The later parts of a deposit plan (part 2 and 3), with what is paid. */
+export async function depositParts(dealId) {
+  const client = await getClient();
+  return check(await client.from('deposit_payments').select('part, amount_rands, due_date, safe_state, paid_at').eq('deal_id', dealId).order('part'));
 }

@@ -11,7 +11,9 @@
 //                      bank, the account type and the last 4 digits are kept.
 //   action "pay"     → the renter pays the first month's rent and the deposit
 //                      into TradeSafe (returns TradeSafe's payment page).
-//   action "sync"    → checks the payment with TradeSafe and acts on the deal:
+//   action "pay_part"→ after moving in, the renter pays a later part of a
+//                      deposit plan; TradeSafe passes it straight to the owner.
+//   action "sync"    → checks the payments with TradeSafe and acts on the deal:
 //                      keys confirmed → pay the owner; deal called off → refund.
 //   ?callback=<key>  → TradeSafe tells us a transaction changed. The message is
 //                      never trusted: we ask TradeSafe for the real state.
@@ -128,17 +130,42 @@ class UserProblem extends Error {}
 
 type Deal = {
   id: string; enquiry_id: string; owner_id: string; renter_id: string; status: string;
-  rent_rands: number; deposit_rands: number | null; start_date: string; area: string; kind: string; bedrooms: number;
+  rent_rands: number; deposit_rands: number | null; deposit_parts: number; start_date: string; area: string; kind: string; bedrooms: number;
   safe_tx: string | null; safe_state: string;
 };
+type Part = { deal_id: string; part: number; amount_rands: number; due_date: string; safe_tx: string | null; safe_state: string };
 
 async function loadDeal(id: string): Promise<Deal | null> {
   const { data } = await db.from('deals')
-    .select('id, enquiry_id, owner_id, renter_id, status, rent_rands, deposit_rands, start_date, safe_tx, safe_state, listings(area, kind, bedrooms)')
+    .select('id, enquiry_id, owner_id, renter_id, status, rent_rands, deposit_rands, deposit_parts, start_date, safe_tx, safe_state, listings(area, kind, bedrooms)')
     .eq('id', id).maybeSingle();
   if (!data) return null;
   const place = (data as any).listings ?? {};
   return { ...(data as any), area: place.area, kind: place.kind, bedrooms: place.bedrooms };
+}
+
+async function laterParts(dealId: string): Promise<Part[]> {
+  const { data, error } = await db.from('deposit_payments').select('deal_id, part, amount_rands, due_date, safe_tx, safe_state').eq('deal_id', dealId).order('part');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Part[];
+}
+
+/** The deposit paid before moving in: all of it, or the first part of a plan. */
+async function firstDepositPart(deal: Deal) {
+  const later = await laterParts(deal.id);
+  return Math.max(0, (deal.deposit_rands ?? 0) - later.reduce((sum, p) => sum + p.amount_rands, 0));
+}
+
+function placeName(deal: Deal) {
+  return `${deal.bedrooms ? `${deal.bedrooms}-bed ` : ''}${String(deal.kind ?? 'place').replace(/_/g, ' ')} in ${deal.area}`;
+}
+
+async function renterToken(userId: string) {
+  const { data } = await db.from('safe_accounts').select('token').eq('user_id', userId).maybeSingle();
+  if (data?.token) return data.token as string;
+  const token = await createToken(userId);
+  await db.from('safe_accounts').upsert({ user_id: userId, token, can_receive: false, updated_at: new Date().toISOString() });
+  return token;
 }
 
 async function record(deal: Deal, state: string, extra: Record<string, unknown> = {}) {
@@ -170,6 +197,60 @@ async function reconcile(deal: Deal) {
   return state;
 }
 
+/** A later deposit part: once TradeSafe has it, pass it straight to the owner. */
+async function reconcilePart(deal: Deal, part: Part) {
+  if (!part.safe_tx || ['released', 'refunded'].includes(part.safe_state)) return part.safe_state;
+  const data = await gql('query transaction($id: ID!) { transaction(id: $id) { id state allocations { id state } } }', { id: part.safe_tx });
+  const tx = data.transaction;
+  let state = PAID.includes(tx.state) ? 'paid' : RELEASED.includes(tx.state) ? 'released' : REFUNDED.includes(tx.state) ? 'refunded' : 'waiting';
+  if (state === 'paid') {
+    for (const allocation of tx.allocations ?? []) {
+      if (!['INITIATED', 'SENT', 'DELIVERED'].includes(allocation.state)) {
+        await gql('mutation allocationStartDelivery($id: ID!) { allocationStartDelivery(id: $id) { id state } }', { id: allocation.id });
+      }
+      await gql('mutation allocationAcceptDelivery($id: ID!) { allocationAcceptDelivery(id: $id) { id state } }', { id: allocation.id });
+    }
+    state = 'released';
+  }
+  if (state !== part.safe_state) {
+    const { error } = await db.rpc('safe_record_part', { p_deal: deal.id, p_part: part.part, p_state: state });
+    if (error) throw new Error(error.message);
+  }
+  return state;
+}
+
+async function payPart(deal: Deal, userId: string, partNumber: number) {
+  if (deal.renter_id !== userId) throw new UserProblem('not_the_renter');
+  if (deal.status !== 'moved_in') throw new UserProblem('part_after_keys');
+  const part = (await laterParts(deal.id)).find((p) => p.part === partNumber);
+  if (!part) throw new UserProblem('deposit_part_missing');
+  if (!['none', 'waiting'].includes(part.safe_state)) throw new UserProblem('already_paid');
+  const { data: owner } = await db.from('safe_accounts').select('token, can_receive').eq('user_id', deal.owner_id).maybeSingle();
+  if (!owner?.can_receive) throw new UserProblem('owner_not_ready');
+  let txId = part.safe_tx;
+  if (!txId) {
+    const renter = await renterToken(userId);
+    const created = await gql(`mutation transactionCreate($input: CreateTransactionInput!) {
+        transactionCreate(input: $input) { id } }`, {
+      input: {
+        title: `Deposit part ${part.part} of ${deal.deposit_parts}: ${placeName(deal)}`,
+        description: 'A deposit part paid through Street Property, passed to the owner once received.',
+        industry: 'GENERAL_GOODS_SERVICES',
+        currency: 'ZAR',
+        feeAllocation: FEE_PAYER,
+        workflow: 'STANDARD',
+        allocations: { create: [{ title: `Deposit part ${part.part} of ${deal.deposit_parts}`, description: `Due ${part.due_date}`, value: part.amount_rands, daysToDeliver: 7, daysToInspect: 1 }] },
+        parties: { create: [{ token: renter, role: 'BUYER' }, { token: owner.token, role: 'SELLER' }] },
+      },
+    });
+    txId = created.transactionCreate.id as string;
+    const { error } = await db.rpc('safe_record_part', { p_deal: deal.id, p_part: part.part, p_state: 'waiting', p_tx: txId });
+    if (error) throw new Error(error.message);
+  }
+  const link = await gql('mutation checkoutLink($id: ID!) { checkoutLink(transactionId: $id) }', { id: txId });
+  return link.checkoutLink as string;
+}
+
 async function pay(deal: Deal, userId: string) {
   if (deal.renter_id !== userId) throw new UserProblem('not_the_renter');
   if (deal.status !== 'signed') throw new UserProblem('pay_after_lease');
@@ -179,18 +260,15 @@ async function pay(deal: Deal, userId: string) {
 
   let txId = deal.safe_tx;
   if (!txId) {
-    let { data: renter } = await db.from('safe_accounts').select('token').eq('user_id', userId).maybeSingle();
-    if (!renter) {
-      const token = await createToken(userId);
-      await db.from('safe_accounts').upsert({ user_id: userId, token, can_receive: false, updated_at: new Date().toISOString() });
-      renter = { token };
-    }
+    const renter = { token: await renterToken(userId) };
+    const deposit = await firstDepositPart(deal);
     const daysToStart = Math.max(0, Math.ceil((new Date(`${deal.start_date}T00:00:00Z`).getTime() - Date.now()) / 86_400_000));
     const days = Math.min(Math.max(daysToStart + 14, 7), 120);
-    const place = `${deal.bedrooms ? `${deal.bedrooms}-bed ` : ''}${String(deal.kind ?? 'place').replace(/_/g, ' ')} in ${deal.area}`;
+    const place = placeName(deal);
     const allocations = [{ title: "First month's rent", description: `Rent for ${place}`, value: deal.rent_rands, daysToDeliver: days, daysToInspect: 7 }];
-    if ((deal.deposit_rands ?? 0) > 0) {
-      allocations.push({ title: 'Deposit', description: `Deposit for ${place}`, value: deal.deposit_rands!, daysToDeliver: days, daysToInspect: 7 });
+    if (deposit > 0) {
+      const title = deal.deposit_parts > 1 ? `Deposit part 1 of ${deal.deposit_parts}` : 'Deposit';
+      allocations.push({ title, description: `${title} for ${place}`, value: deposit, daysToDeliver: days, daysToInspect: 7 });
     }
     const created = await gql(`mutation transactionCreate($input: CreateTransactionInput!) {
         transactionCreate(input: $input) { id allocations { id } } }`, {
@@ -207,7 +285,7 @@ async function pay(deal: Deal, userId: string) {
     });
     txId = created.transactionCreate.id as string;
     await record(deal, 'waiting', {
-      p_tx: txId, p_rent: deal.rent_rands, p_deposit: deal.deposit_rands ?? 0,
+      p_tx: txId, p_rent: deal.rent_rands, p_deposit: deposit,
       p_allocations: (created.transactionCreate.allocations ?? []).map((a: { id: string }) => a.id),
     });
   }
@@ -248,8 +326,14 @@ Deno.serve(async (request) => {
     const txId = typeof body?.id === 'string' ? body.id : '';
     if (txId) {
       const { data } = await db.from('deals').select('id').eq('safe_tx', txId).maybeSingle();
-      const deal = data ? await loadDeal(data.id) : null;
-      if (deal) await reconcile(deal).catch((e) => console.error('callback', e.message));
+      if (data) {
+        const deal = await loadDeal(data.id);
+        if (deal) await reconcile(deal).catch((e) => console.error('callback', e.message));
+      } else {
+        const { data: part } = await db.from('deposit_payments').select('deal_id, part, amount_rands, due_date, safe_tx, safe_state').eq('safe_tx', txId).maybeSingle();
+        const deal = part ? await loadDeal(part.deal_id) : null;
+        if (deal && part) await reconcilePart(deal, part as Part).catch((e) => console.error('callback part', e.message));
+      }
     }
     return new Response('ok');
   }
@@ -269,7 +353,15 @@ Deno.serve(async (request) => {
     const deal = typeof body.deal === 'string' ? await loadDeal(body.deal) : null;
     if (!deal || ![deal.owner_id, deal.renter_id].includes(userId)) return problem('deal_not_found', 404);
     if (body.action === 'pay') return reply({ url: await pay(deal, userId) });
-    if (body.action === 'sync') return reply({ state: await reconcile(deal) });
+    if (body.action === 'pay_part') return reply({ url: await payPart(deal, userId, Number(body.part)) });
+    if (body.action === 'sync') {
+      const state = await reconcile(deal);
+      const parts: Record<number, string> = {};
+      for (const part of await laterParts(deal.id)) {
+        if (['waiting', 'paid'].includes(part.safe_state)) parts[part.part] = await reconcilePart(deal, part);
+      }
+      return reply({ state, parts });
+    }
     return problem('bad_request');
   } catch (error) {
     if (error instanceof UserProblem) return problem(error.message);

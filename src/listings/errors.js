@@ -87,6 +87,10 @@ const BY_HINT = {
   account_number: 'Check the account number: digits only.',
   id_number: 'Enter your 13-digit South African ID number.',
   sign_in: 'Log in again, then try once more.',
+  deposit_parts: 'Choose 1, 2 or 3 deposit parts (no more than the months of the lease).',
+  deposit_parts_small: 'A deposit paid in parts must be at least R300 a part.',
+  part_after_keys: 'Later deposit parts are paid after you have moved in.',
+  deposit_part_missing: 'That deposit part was not found.',
 };
 
 // Problems from the phone itself (photos, camera, location).
