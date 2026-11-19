@@ -16,7 +16,8 @@ const BADGE = '<path d="M12 3l8 3v6c0 5-3.5 8.5-8 9.5C7.5 20.5 4 17 4 12V6z"></p
 
 /** A labelled file picker that remembers the chosen file. */
 function picker({ id, label, capture }) {
-  const input = el('input', { type: 'file', id, class: 'file__input', accept: 'image/*,application/pdf' });
+  // The ID and selfie are photos taken now; documents can also be PDFs.
+  const input = el('input', { type: 'file', id, class: 'file__input', accept: capture ? 'image/*' : 'image/*,application/pdf' });
   if (capture) input.setAttribute('capture', capture);
   const chosen = el('span', { class: 'file__chosen', text: 'No file chosen' });
   input.addEventListener('change', () => {
@@ -24,7 +25,7 @@ function picker({ id, label, capture }) {
   });
   const node = el('div', { class: 'file' }, [
     el('label', { for: id, class: 'field__label', text: label }),
-    el('label', { for: id, class: 'button button--quiet file__button', text: 'Choose photo or file' }),
+    el('label', { for: id, class: 'button button--quiet file__button', text: capture ? 'Take a photo' : 'Choose photo or file' }),
     input,
     chosen,
   ]);

@@ -10,3 +10,5 @@
 | D-006 | 2026-11-19 | 2 | 3 | Privacy | Anyone could read the full street address and the exact filmed spot of a live listing from the database, even though the screens hid the house number | Only the owner and admins can read them; everyone else gets the street name and a spot rounded to about 100 m | High | Fixed |
 | D-007 | 2026-11-19 | 0 | 4 | Log in | The "come back after logging in" memory used a name left over from plusespot (event-cal.next) | Named street-property.next | Low | Fixed |
 | D-008 | 2026-11-19 | 5 | 5 | Tours | A clip could stay paused on its first frame when the phone ignored play() while it was loading | Play is tried again as soon as the clip can play (tour feed and full-screen tour) | Medium | Fixed |
+| D-009 | 2026-11-19 | 6 | 7 | Street Verified | Document photos were shrunk like listing photos (1600 px), so small print on a deed or rates account could be unreadable | Documents keep up to 2600 px (6 MB) | Medium | Fixed |
+| D-010 | 2026-11-19 | 6 | 7 | Street Verified | The ID and selfie pickers also offered PDFs although they open the camera | Photos only, button says "Take a photo" | Low | Fixed |

@@ -7,6 +7,8 @@ import { shrinkPhoto } from '../media/photos.js';
 import { docExtension } from './rules.js';
 
 const BUCKET = 'verification-docs';
+/** Documents keep enough detail to read the small print on a deed or rates account. */
+export const DOC_PHOTO = { max: 2600, maxBytes: 6 * 1024 * 1024 };
 
 function check({ data, error }) {
   if (error) throw error;
@@ -29,7 +31,7 @@ export async function uploadDoc(userId, folder, file) {
   let body = file;
   let type = file.type;
   if (file.type !== 'application/pdf') {
-    body = await shrinkPhoto(file);
+    body = await shrinkPhoto(file, DOC_PHOTO);
     type = 'image/jpeg';
   }
   const path = `${userId}/${folder}/${crypto.randomUUID()}.${docExtension(type)}`;

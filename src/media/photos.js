@@ -4,7 +4,7 @@
 
 import { fitWithin } from '../listings/rules.js';
 
-const MAX_BYTES = 2 * 1024 * 1024; // the storage bucket's limit
+const MAX_BYTES = 2 * 1024 * 1024; // the listing-photos bucket's limit
 
 async function decode(file) {
   if (typeof createImageBitmap === 'function') {
@@ -34,10 +34,12 @@ function toBlob(canvas, quality) {
 
 /**
  * @param {File} file a photo the person picked
+ * @param {{ max?: number, maxBytes?: number }} options long side in pixels and largest file
+ *   (documents keep more detail than listing photos, so small print stays readable)
  * @returns {Promise<Blob>} a JPEG small enough to upload
  * @throws {{ code: 'not_a_photo' }} when the file is not a photo the browser can open
  */
-export async function shrinkPhoto(file) {
+export async function shrinkPhoto(file, { max = 1600, maxBytes = MAX_BYTES } = {}) {
   if (!String(file.type).startsWith('image/')) throw { code: 'not_a_photo' };
   let picture;
   try {
@@ -47,7 +49,7 @@ export async function shrinkPhoto(file) {
   }
   const width = picture.width || picture.naturalWidth;
   const height = picture.height || picture.naturalHeight;
-  const size = fitWithin(width, height, 1600);
+  const size = fitWithin(width, height, max);
   const canvas = document.createElement('canvas');
   canvas.width = size.width;
   canvas.height = size.height;
@@ -55,7 +57,7 @@ export async function shrinkPhoto(file) {
   if (typeof picture.close === 'function') picture.close();
   for (const quality of [0.82, 0.7, 0.55]) {
     const blob = await toBlob(canvas, quality);
-    if (blob.size <= MAX_BYTES) return blob;
+    if (blob.size <= maxBytes) return blob;
   }
   throw { code: 'photo_too_big' };
 }

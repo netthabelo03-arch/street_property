@@ -77,3 +77,13 @@ test('S6: a new address loses the badge', () => {
   assert.match(sql, /before update of street, area, city on public\.listings/);
   assert.match(sql, /new\.verified_at := null;/);
 });
+
+test('S6 fix: document photos keep enough detail to read', async () => {
+  const api = readFileSync(new URL('../src/verify/api.js', import.meta.url), 'utf8');
+  assert.match(api, /DOC_PHOTO = \{ max: 2600, maxBytes: 6 \* 1024 \* 1024 \}/);
+  assert.match(api, /shrinkPhoto\(file, DOC_PHOTO\)/);
+  const sql = readFileSync(new URL('../supabase/007_verified.sql', import.meta.url), 'utf8');
+  assert.ok(6 * 1024 * 1024 <= Number(sql.match(/'verification-docs', 'verification-docs', false, (\d+)/)[1]), 'fits the bucket limit');
+  const screen = readFileSync(new URL('../src/screens/verify.js', import.meta.url), 'utf8');
+  assert.match(screen, /accept: capture \? 'image\/\*' : 'image\/\*,application\/pdf'/);
+});
