@@ -149,7 +149,8 @@ export async function renderExplore({ session }) {
       if (!append) total = found.total ?? 0;
       results.append(...found.items.map((listing) => el('li', {}, [placeCard(listing, filters.tours)])));
       shown += found.items.length;
-      count.textContent = countLine(total, filters.mode);
+      const filtered = activeCount(filters) > 0 || filters.text.trim() !== '';
+      count.textContent = total === 0 && !filtered ? '' : countLine(total, filters.mode);
       status.replaceChildren(...(total === 0 ? [emptyState()] : []));
       more.hidden = shown >= total || found.items.length === 0;
     } catch (error) {

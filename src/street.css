@@ -176,3 +176,4 @@ body:not(:has(.tabbar)) .sticky-action { bottom: 16px; }
 .feature-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .feature-list li { padding: 6px 12px; border-radius: 999px; background: var(--color-surface-raised); font-size: 14px; }
 .tour-player { width: 100%; max-height: 70vh; border-radius: var(--radius-card); background: #000; }
+[role="status"].section__title:empty { display: none; }
