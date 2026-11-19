@@ -27,7 +27,7 @@ language sql
 immutable
 set search_path = ''
 as $$
-  select * from (values ('week', 49, 7), ('fortnight', 99, 14), ('month', 179, 30)) as t(tier, amount_rands, days)
+  select t.amount_rands, t.days from (values ('week', 49, 7), ('fortnight', 99, 14), ('month', 179, 30)) as t(tier, amount_rands, days)
   where t.tier = p_tier;
 $$;
 
