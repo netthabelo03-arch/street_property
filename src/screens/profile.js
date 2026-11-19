@@ -44,6 +44,15 @@ export async function renderProfile({ session }) {
   const phone = field({ id: 'phone', label: 'Cell number (optional)', type: 'tel', autocomplete: 'tel', value: profile.phone ? showPhone(profile.phone) : '' });
   const share = el('input', { type: 'checkbox', id: 'share-whatsapp', class: 'check__box' });
   share.checked = profile.share_whatsapp === true;
+  const emails = el('input', { type: 'checkbox', id: 'email-notifications', class: 'check__box' });
+  emails.checked = profile.email_notifications !== false;
+  const emailRow = el('label', { class: 'check check--tall', for: 'email-notifications' }, [
+    emails,
+    el('span', { class: 'check__text' }, [
+      el('span', { class: 'check__label', text: 'Email me about messages, viewings and checks' }),
+      el('span', { class: 'check__hint', text: 'At most one email per conversation every 15 minutes.' }),
+    ]),
+  ]);
   const shareRow = el('label', { class: 'check check--tall', for: 'share-whatsapp' }, [
     share,
     el('span', { class: 'check__text' }, [
@@ -56,6 +65,7 @@ export async function renderProfile({ session }) {
     name.node,
     phone.node,
     shareRow,
+    emailRow,
     el('div', { class: 'field' }, [
       el('span', { class: 'field__label', id: 'role-label', text: 'I use Street Property as' }),
       el('div', { class: 'role-options', role: 'group', 'aria-labelledby': 'role-label' }, options.map(({ button }) => button)),
@@ -76,7 +86,8 @@ export async function renderProfile({ session }) {
     if (nameError || phoneError) return;
     await whileBusy(save, 'Saving…', async () => {
       try {
-        const saved = await updateProfile(session.user.id, { fullName: name.input.value, role, phone: cleanPhone, shareWhatsapp: share.checked });
+        const saved = await updateProfile(session.user.id, { fullName: name.input.value, role, phone: cleanPhone, shareWhatsapp: share.checked, emailNotifications: emails.checked });
+        emails.checked = saved.email_notifications !== false;
         phone.input.value = saved.phone ? showPhone(saved.phone) : '';
         share.checked = saved.share_whatsapp === true;
         name.input.value = saved.full_name;

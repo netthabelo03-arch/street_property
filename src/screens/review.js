@@ -6,6 +6,7 @@ import { loadViewer } from '../viewer.js';
 import { reviewQueue, getListing, listPhotos, listClips, reviewListing } from '../listings/api.js';
 import { verificationQueue, docLinks, decideCheck } from '../verify/api.js';
 import { decideIncome } from '../renter/api.js';
+import { openReports, reportMessages, resolveReport } from '../reports/api.js';
 import { parseRands } from '../listings/rules.js';
 import { FEATURES, listingTitle, priceLine, tourRooms, formatSeconds, formatRands, findKind, clipDistances, missingForReview, formatDistance } from '../listings/rules.js';
 import { friendlyListingError } from '../listings/errors.js';
@@ -31,7 +32,7 @@ export async function renderReviewQueue({ session }) {
   const { profile, admin } = await loadViewer(session);
   const bar = topBar({ profile, session });
   if (!admin) return adminsOnly(bar);
-  const [waiting, checks] = await Promise.all([reviewQueue(), verificationQueue()]);
+  const [waiting, checks, reports] = await Promise.all([reviewQueue(), verificationQueue(), openReports()]);
   const checkRows = checks.map((item) => el('li', {}, [
     el('a', { class: 'listing-row', href: `#/review/check/${item.kind}/${item.subject_id}` }, [
       el('div', { class: 'listing-row__top' }, [
@@ -44,6 +45,10 @@ export async function renderReviewQueue({ session }) {
   return [
     bar,
     el('h1', { class: 'title', text: 'Review queue' }),
+    el('a', { href: '#/review/reports', class: `verify-link${reports.length ? '' : ' verify-link--quiet'}` }, [
+      el('span', { class: 'verify-link__title', text: `Reported conversations (${reports.length})` }),
+      el('span', { class: 'verify-link__line', text: reports.length ? 'Read what was said, then close each report with what you did.' : 'No open reports.' }),
+    ]),
     el('section', { class: 'section' }, [
       el('h2', { class: 'section__title', text: `ID, ownership and income checks (${checks.length})` }),
       ...(checks.length ? [el('ul', { class: 'listing-list' }, checkRows)] : [el('p', { class: 'lead', text: 'No ID or ownership checks waiting.' })]),
@@ -264,6 +269,68 @@ export async function renderReviewCheck({ session, navigate, route }) {
       reject,
       el('p', { class: 'field__hint', text: 'The photos and documents are deleted as soon as you decide.' }),
     ]),
+    tabBar('profile'),
+  ];
+}
+
+/** Reported conversations: read them and close each with what was done. */
+export async function renderReports({ session }) {
+  const { profile, admin } = await loadViewer(session);
+  const bar = topBar({ profile, session });
+  if (!admin) return adminsOnly(bar);
+  const reports = await openReports();
+  const list = el('ul', { class: 'listing-list' });
+
+  function reportCard(report) {
+    const li = el('li', { class: 'report-card' });
+    const thread = el('ol', { class: 'bubbles' });
+    const show = el('button', { type: 'button', class: 'button button--quiet button--small', text: 'Read the conversation' });
+    show.addEventListener('click', () => whileBusy(show, 'Loading…', async () => {
+      const messages = await reportMessages(report.id);
+      thread.replaceChildren(...messages.map((m) => m.kind === 'system'
+        ? el('li', { class: 'bubble bubble--note', text: m.body })
+        : el('li', { class: `bubble ${m.sender === 'renter' ? 'bubble--theirs' : 'bubble--mine'}` }, [
+          el('p', { class: 'bubble__time', text: `${m.sender === 'renter' ? report.renter_name : report.owner_name} (${m.sender}) · ${when(m.created_at)}` }),
+          el('p', { class: 'bubble__text', text: m.body }),
+        ])));
+      show.remove();
+    }));
+    const outcome = el('textarea', { id: `outcome-${report.id}`, class: 'input input--area', rows: '2', maxlength: '500' });
+    const takeDown = el('input', { type: 'checkbox', id: `down-${report.id}`, class: 'check__box' });
+    const close = el('button', { type: 'button', class: 'button button--primary', text: 'Close the report' });
+    const message = messageBox();
+    close.addEventListener('click', () => whileBusy(close, 'Closing…', async () => {
+      message.clear();
+      try {
+        await resolveReport(report.id, outcome.value, takeDown.checked);
+        li.remove();
+        if (!list.children.length) list.replaceWith(el('p', { class: 'lead', text: 'No open reports.' }));
+      } catch (error) {
+        message.show(friendlyListingError(error));
+      }
+    }));
+    li.append(
+      el('p', { class: 'listing-row__title', text: `${report.reporter_name} (${report.reporter_side}) reported a conversation` }),
+      el('p', { class: 'lead', text: `\u201c${report.reason}\u201d` }),
+      el('p', { class: 'listing-row__about', text: `About ${report.street}, ${report.area} (${report.listing_status}) · renter ${report.renter_name}, owner ${report.owner_name} · ${when(report.created_at)}` }),
+      show,
+      thread,
+      el('label', { for: `outcome-${report.id}`, class: 'field__label', text: 'What you did (kept with the report)' }),
+      outcome,
+      el('label', { class: 'check', for: `down-${report.id}` }, [takeDown, el('span', { text: 'Take the listing down (the owner is told why)' })]),
+      message.node,
+      close,
+    );
+    return li;
+  }
+
+  list.append(...reports.map(reportCard));
+  return [
+    bar,
+    el('a', { href: '#/review', class: 'text-link', text: '\u2190 Review queue' }),
+    el('h1', { class: 'title', text: 'Reported conversations' }),
+    el('p', { class: 'lead', text: 'Only open reports are shown. Read the conversation only to deal with the report.' }),
+    reports.length ? list : el('p', { class: 'lead', text: 'No open reports.' }),
     tabBar('profile'),
   ];
 }

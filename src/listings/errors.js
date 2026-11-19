@@ -51,6 +51,8 @@ const BY_HINT = {
   household_too_long: 'Keep this under 120 characters.',
   not_shared: 'The renter has not shared their check.',
   income_amount: 'Enter the monthly take-home pay.',
+  outcome_needed: 'Write down what you did about this report.',
+  report_closed: 'This report is already closed.',
 };
 
 // Problems from the phone itself (photos, camera, location).

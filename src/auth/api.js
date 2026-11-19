@@ -82,20 +82,20 @@ export async function getProfile(userId) {
   const client = await getClient();
   const { data, error } = await client
     .from('profiles')
-    .select('id, full_name, role, phone, share_whatsapp')
+    .select('id, full_name, role, phone, share_whatsapp, email_notifications')
     .eq('id', userId)
     .maybeSingle();
   if (error) throw error;
   return data;
 }
 
-export async function updateProfile(userId, { fullName, role, phone = null, shareWhatsapp = false }) {
+export async function updateProfile(userId, { fullName, role, phone = null, shareWhatsapp = false, emailNotifications = true }) {
   const client = await getClient();
   const { data, error } = await client
     .from('profiles')
-    .update({ full_name: String(fullName).trim(), role, phone, share_whatsapp: Boolean(shareWhatsapp && phone) })
+    .update({ full_name: String(fullName).trim(), role, phone, share_whatsapp: Boolean(shareWhatsapp && phone), email_notifications: Boolean(emailNotifications) })
     .eq('id', userId)
-    .select('id, full_name, role, phone, share_whatsapp')
+    .select('id, full_name, role, phone, share_whatsapp, email_notifications')
     .single();
   if (error) throw error;
   return data;

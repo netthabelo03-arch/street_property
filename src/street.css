@@ -323,3 +323,4 @@ body.tour-open { overflow: hidden; }
 .cover--fair .cover__x { color: var(--color-gold); }
 .cover--low .cover__x { color: var(--color-danger); }
 select.input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--color-text-muted) 50%), linear-gradient(135deg, var(--color-text-muted) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
+.verify-link--quiet { background: var(--color-panel); border-color: var(--color-line); } .verify-link--quiet .verify-link__title { color: var(--color-text); } .report-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: var(--radius-card); background: var(--color-panel); border: 1px solid var(--color-line); }

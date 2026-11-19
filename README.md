@@ -6,7 +6,26 @@ Phone-first web app: plain HTML, CSS and JavaScript (no build step), Supabase fo
 
 Live: https://netthabelo03-arch.github.io/street_property/
 
-## Sprint 6 (this version): Street Verified
+## Sprint 7 (this version): renter check, reports, emails
+
+- **Renter check** (`#/renter-check`, from Profile):
+  - **Checks:** the ID check (the same one as Street Verified) plus income, from payslips or bank statements.
+  - **Admins** check by hand: they write down the monthly take-home pay, and the documents are deleted. The result is good for 3 months.
+  - **Later:** Stitch's bank link can replace the hand check without changing the screens.
+- **Sharing in a conversation:** the renter adds the move-in date, how long, who is moving in and pets, ticks to agree, and shares.
+  - **What the owner sees** (`#/enquiries/<id>/check`, as in the design): "ID checked" and "3.1× take-home pay covers the rent". Never the amount or the documents.
+  - **The owner's answer:** "Yes, rent to …" or "Not this time". Not this time removes the renter's details from the owner's view.
+  - The renter can stop sharing at any time.
+- **Reported conversations** (`#/review/reports`): admins read the conversation (only while the report is open), close it with what they did, and can take the listing down.
+- **Email notifications:**
+  - **When:** new messages (at most one per conversation every 15 minutes), viewing updates, listing approved or sent back or taken down, and check results.
+  - **How:** an outbox in the database and the `send-emails` Edge Function, through Brevo or Resend.
+  - **Turning them off:** a setting on the Profile.
+  - **Setup:** see `docs/email-setup.md`.
+- **Database:** `supabase/008_renter_check.sql` (dry run: 11 checks) and `supabase/009_reports_email.sql` (dry run: 9 checks).
+- **Sprint 6 fixes:** document photos keep enough detail for small print, and the ID and selfie pickers take photos only.
+
+## Sprint 6: Street Verified
 
 - **Prove your place is real** (`#/list/<id>/verify`, from the listing's page in My listings). Three checks earn the badge:
   1. **ID:** a photo of the ID or passport, and a selfie. Done once per person.
@@ -96,7 +115,7 @@ Limits to watch:
 
 ## Set up
 
-1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`, then `supabase/005_enquiries.sql`, then `supabase/006_saved.sql`, then `supabase/007_verified.sql`.
+1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`, then `supabase/005_enquiries.sql`, then `supabase/006_saved.sql`, then `supabase/007_verified.sql`, `008_renter_check.sql` and `009_reports_email.sql`. Deploy `supabase/functions/send-emails` as an Edge Function and follow `docs/email-setup.md`.
 2. **Connect the app.** In `src/config.js`, fill in `SUPABASE_URL` (Project Settings, Data API) and `SUPABASE_PUBLISHABLE_KEY` (Project Settings, API Keys, the `sb_publishable_…` key). Never put a secret key in the app.
 3. **Sign-in links.** In Supabase, Authentication, URL Configuration: set Site URL to the app's address and add it under Redirect URLs.
 4. **Admins.** After signing up, add yourself in SQL Editor: `insert into public.admins (user_id) values ('<your user id>');`

@@ -16,7 +16,7 @@ import { renderMyListings } from './screens/mylistings.js';
 import { renderListDetails } from './screens/listdetails.js';
 import { renderListTour } from './screens/listtour.js';
 import { renderListSend } from './screens/listsend.js';
-import { renderReviewQueue, renderReviewListing, renderReviewCheck } from './screens/review.js';
+import { renderReviewQueue, renderReviewListing, renderReviewCheck, renderReports } from './screens/review.js';
 import { renderVerify } from './screens/verify.js';
 import { renderRenterCheck, renderEnquiryCheck } from './screens/renter.js';
 import { renderFilters } from './screens/filters.js';
@@ -55,6 +55,7 @@ const SCREENS = {
   'review-check': renderReviewCheck,
   'renter-check': renderRenterCheck,
   'enquiry-check': renderEnquiryCheck,
+  'review-reports': renderReports,
 };
 
 const root = document.getElementById('app');

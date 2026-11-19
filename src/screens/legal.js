@@ -33,7 +33,8 @@ export function renderPrivacy() {
     'Messages are seen only by the two people in the conversation. If one of you reports a conversation, our team may read it to deal with the report.',
     'Video tours save where each clip was filmed. Only the owner and our checkers can see that.',
     'For Street Verified, your ID photo, selfie and ownership documents are seen only by our checkers. They are deleted as soon as the check is decided; we keep only the result (approved or not, and why).',
-    'Income checks (coming later) will keep only the result, never your bank statements.',
+    'For the renter check, your payslips or bank statements are seen only by our checkers and deleted as soon as the check is done. We keep only your monthly take-home pay, for 3 months. Owners never see it: only how many times it covers their rent, and only if you share your check with them.',
+    'We email you about messages, viewings and checks through our email provider. You can turn these emails off in your Profile.',
     'Responsible party and Information Officer: [to be named]',
     'Details: [to be written]',
   ]);
