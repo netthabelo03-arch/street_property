@@ -293,17 +293,17 @@ security definer
 set search_path = ''
 as $$
 declare
-  note text := nullif(btrim(coalesce(p_note, '')), '');
+  v_note text := nullif(btrim(coalesce(p_note, '')), '');
   files text[];
   place uuid;
 begin
   if not public.is_admin() then
     raise exception 'Only admins review checks' using errcode = 'P0001', hint = 'not_admin';
   end if;
-  if not p_approve and (note is null or char_length(note) < 5) then
+  if not p_approve and (v_note is null or char_length(v_note) < 5) then
     raise exception 'Say what the person needs to send instead' using errcode = 'P0001', hint = 'note_needed';
   end if;
-  if char_length(coalesce(note, '')) > 500 then
+  if char_length(coalesce(v_note, '')) > 500 then
     raise exception 'Keep the note under 500 characters' using errcode = 'P0001', hint = 'note_too_long';
   end if;
 
@@ -315,7 +315,7 @@ begin
     end if;
     update public.identity_checks set
       status = case when p_approve then 'approved' else 'rejected' end,
-      note = case when p_approve then null else note end,
+      note = case when p_approve then null else v_note end,
       decided_at = now(), decided_by = auth.uid(), id_path = null, selfie_path = null
     where user_id = p_subject;
     -- An approved ID can complete the badge on every listing of this person.
@@ -330,7 +330,7 @@ begin
     end if;
     update public.ownership_checks set
       status = case when p_approve then 'approved' else 'rejected' end,
-      note = case when p_approve then null else note end,
+      note = case when p_approve then null else v_note end,
       decided_at = now(), decided_by = auth.uid(), doc_paths = '{}'
     where listing_id = p_subject;
     perform public.refresh_verified(p_subject);
