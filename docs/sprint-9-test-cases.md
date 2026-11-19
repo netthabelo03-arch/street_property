@@ -18,3 +18,14 @@ Run in TradeSafe **sandbox** (see `docs/street-safe-setup.md`) on two phones: an
 | S9-12 | Refund | On another deal paid into Street Safe, call the deal off | Note "Street Safe is refunding R13 000 to Lerato."; deal shows "refunded to the renter". |
 | S9-13 | Callback key | Open `…/functions/v1/street-safe?callback=wrong` | 403. |
 | S9-14 | Privacy | In SQL Editor: `select * from safe_accounts` | Only bank, type and last 4 digits, plus TradeSafe's token. No account numbers or ID numbers anywhere. |
+
+## Deposit plans
+
+| ID | Area | Steps | Expected |
+|----|------|-------|----------|
+| S9-15 | Plan choice | Owner fills in the lease: deposit 6 500, Deposit "In 3 parts" | The line under it reads "R2 168 before moving in, R2 166 on 1 January 2027, R2 166 on 1 February 2027" (dates follow the start date). |
+| S9-16 | Too small | Deposit 500 in 2 parts, Send | "A deposit paid in parts must be at least R300 a part." |
+| S9-17 | In the lease | Send the lease; both open it | Clause 5: "The deposit is R6 500. It is paid in 3 parts: R2 168 before moving in, R2 166 with the rent on … and R2 166 with the rent on …". The terms say "Deposit R6 500 in 3 parts". |
+| S9-18 | Move-in payment | After signing, renter opens the deal | Button "Pay R8 668 into Street Safe" (rent + part 1). The deal shows "Deposit in 3 parts": part 1 with the move-in payment, parts 2 and 3 with due dates, all "To pay". |
+| S9-19 | Later parts wait | Before the keys | No Pay button on parts 2 and 3. |
+| S9-20 | Pay a part | After the keys, renter taps Pay part 2 and pays on TradeSafe's sandbox page | Part 2 shows "Paid to the owner"; note "Lerato paid deposit part 2 of 3 (R2 166) through Street Safe. It was passed to Thabo." |

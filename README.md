@@ -12,6 +12,7 @@ Live: https://netthabelo03-arch.github.io/street_property/
 - TradeSafe holds the money until the renter taps **I have the keys**, then pays the owner. If the deal is called off first, the renter is refunded.
 - Owners and agents add their payout account under **Profile → Street Safe payouts**. The account and ID numbers go straight to TradeSafe; Street Property keeps only the bank, the account type and the last 4 digits.
 - The deal's steps are now in the order they happen: lease, then payment, then the move-in check and keys.
+- **Deposit plans:** the owner can let the renter pay the deposit in 2 or 3 parts. Part 1 goes with the move-in payment (held until the keys); later parts are paid with the rent after moving in and passed straight to the owner. The plan is written into the lease. Database: `supabase/012_deposit_plans.sql` (dry run, 8 checks).
 - Database: `supabase/011_street_safe.sql` (dry run, 8 checks). Edge Function: `supabase/functions/street-safe`. TradeSafe's callbacks are never trusted: the function asks TradeSafe for the real state.
 - **Switching it on:** `docs/street-safe-setup.md`. Test cases: `docs/sprint-9-test-cases.md`.
 
@@ -134,7 +135,7 @@ Limits to watch:
 
 ## Set up
 
-1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`, then `supabase/005_enquiries.sql`, then `supabase/006_saved.sql`, then `supabase/007_verified.sql`, `008_renter_check.sql`, `009_reports_email.sql`, `010_deals.sql` and `011_street_safe.sql`. Deploy `supabase/functions/send-emails` and `supabase/functions/street-safe` as Edge Functions and follow `docs/email-setup.md` and `docs/street-safe-setup.md`.
+1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`, then `supabase/005_enquiries.sql`, then `supabase/006_saved.sql`, then `supabase/007_verified.sql`, `008_renter_check.sql`, `009_reports_email.sql`, `010_deals.sql`, `011_street_safe.sql` and `012_deposit_plans.sql`. Deploy `supabase/functions/send-emails` and `supabase/functions/street-safe` as Edge Functions and follow `docs/email-setup.md` and `docs/street-safe-setup.md`.
 2. **Connect the app.** In `src/config.js`, fill in `SUPABASE_URL` (Project Settings, Data API) and `SUPABASE_PUBLISHABLE_KEY` (Project Settings, API Keys, the `sb_publishable_…` key). Never put a secret key in the app.
 3. **Sign-in links.** In Supabase, Authentication, URL Configuration: set Site URL to the app's address and add it under Redirect URLs.
 4. **Admins.** After signing up, add yourself in SQL Editor: `insert into public.admins (user_id) values ('<your user id>');`
