@@ -6,7 +6,7 @@ Phone-first web app: plain HTML, CSS and JavaScript (no build step), Supabase fo
 
 Live: https://netthabelo03-arch.github.io/street_property/
 
-## Sprint 8: the Street Safe deal
+## Sprint 8 (this version): the Street Safe deal
 
 - **We met:** at a confirmed viewing, both people tap "We met" at the address (checked by location, within about 300 m).
 - **The deal** starts when the owner says yes to a renter's check: seven steps from Verified to Keys, with what to do next for each side. The deposit step is Sprint 9.
@@ -16,7 +16,7 @@ Live: https://netthabelo03-arch.github.io/street_property/
 - Database: `supabase/010_deals.sql` (dry run `supabase/tests/010_dryrun.sql`, 13 checks). Photos sit in the private `deal-photos` bucket.
 - Test cases: `docs/sprint-8-test-cases.md`.
 
-## Sprint 7 (this version): renter check, reports, emails
+## Sprint 7: renter check, reports, emails
 
 - **Renter check** (`#/renter-check`, from Profile):
   - **Checks:** the ID check (the same one as Street Verified) plus income, from payslips or bank statements.
