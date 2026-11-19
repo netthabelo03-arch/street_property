@@ -1,6 +1,6 @@
 // Explore: the home screen. Choose rent or buy, search by street, suburb or
 // township, narrow down with filters, and scroll through live listings.
-// "Tours" swaps each cover photo for the outside clip of its video tour.
+// "Tours" opens the tour feed: the same search, as full-screen video tours.
 
 import { loadViewer } from '../viewer.js';
 import { canList } from '../roles.js';
@@ -99,12 +99,7 @@ export async function renderExplore({ session }) {
     input.placeholder = MODES[filters.mode].placeholder;
     const n = activeCount(filters);
     const filterButton = el('a', { href: '#/filters', class: `chip-button${n ? ' chip-button--on' : ''}` }, [icon(SLIDERS, 16), el('span', { text: n ? `Filters · ${n}` : 'Filters' })]);
-    const tours = el('button', { type: 'button', class: `chip-button${filters.tours ? ' chip-button--on' : ''}`, 'aria-pressed': String(filters.tours) }, [icon(PLAY, 14), el('span', { text: 'Tours' })]);
-    tours.addEventListener('click', () => {
-      filters = saveFilters({ ...filters, tours: !filters.tours });
-      drawControls();
-      search();
-    });
+    const tours = el('a', { href: '#/tours', class: 'chip-button chip-button--on' }, [icon(PLAY, 14), el('span', { text: 'Tours' })]);
     const quick = quickChips(filters).map((chip) => el('a', { href: '#/filters', class: `chip-button chip-button--quiet${chip.on ? ' chip-button--on' : ''}`, text: chip.label }));
     const onMap = el('a', { href: '#/map', class: 'chip-button chip-button--quiet' }, [icon(PIN, 16), el('span', { text: 'Map' })]);
     chipRow.replaceChildren(filterButton, tours, onMap, ...quick);
@@ -115,7 +110,7 @@ export async function renderExplore({ session }) {
     if (filtered) {
       const clear = el('button', { type: 'button', class: 'button button--quiet', text: 'Clear search and filters' });
       clear.addEventListener('click', () => {
-        filters = saveFilters({ ...defaultFilters(), mode: filters.mode, tours: filters.tours });
+        filters = saveFilters({ ...defaultFilters(), mode: filters.mode });
         input.value = '';
         drawControls();
         search();
@@ -147,10 +142,10 @@ export async function renderExplore({ session }) {
       more.hidden = true;
     }
     try {
-      const found = await searchListings(filters, page, { withTours: filters.tours });
+      const found = await searchListings(filters, page);
       if (run !== searchRun) return;
       if (!append) total = found.total ?? 0;
-      results.append(...found.items.map((listing) => el('li', {}, [placeCard(listing, filters.tours)])));
+      results.append(...found.items.map((listing) => el('li', {}, [placeCard(listing, false)])));
       shown += found.items.length;
       const filtered = activeCount(filters) > 0 || filters.text.trim() !== '';
       count.textContent = total === 0 && !filtered ? '' : countLine(total, filters.mode);

@@ -6,7 +6,16 @@ Phone-first web app: plain HTML, CSS and JavaScript (no build step), Supabase fo
 
 Live: https://netthabelo03-arch.github.io/street_property/
 
-## Sprint 4 (this version): enquiries and viewings
+## Sprint 5 (this version): tour feed and saved places
+
+- **Tour feed** (`#/tours`, from the Tours chip on Explore): one place at a time, full screen, its video tour playing room by room.
+  - **Moving around:** swipe up for the next place and down for the one before; tap right or left for rooms. The next place's tour loads in advance, and more places load before the end.
+  - **Follows Explore:** the same Rent / Buy, search words and filters, shown as a label at the top.
+  - **Actions:** Save (heart), Ask, Share (the phone's share sheet, or copy the link) and Book a viewing.
+- **Saved tab** (`#/saved`): hearted places, newest first. A place no longer listed stays, marked, until removed. The heart is also on each listing page.
+- **Database:** `supabase/006_saved.sql`; its dry run has 7 checks. Only live places can be saved, each person sees only their own, and there is a limit of 200.
+
+## Sprint 4: enquiries and viewings
 
 - **Ask the owner** on every live listing, with a first message ready. Logging in brings you back to the listing.
 - **Enquiries tab:** Viewings (upcoming, by date) and Messages (every conversation, with unread counts). The tab shows a badge for unread messages.
@@ -73,7 +82,7 @@ Limits to watch:
 
 ## Set up
 
-1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`, then `supabase/005_enquiries.sql`.
+1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`, then `supabase/005_enquiries.sql`, then `supabase/006_saved.sql`.
 2. **Connect the app.** In `src/config.js`, fill in `SUPABASE_URL` (Project Settings, Data API) and `SUPABASE_PUBLISHABLE_KEY` (Project Settings, API Keys, the `sb_publishable_…` key). Never put a secret key in the app.
 3. **Sign-in links.** In Supabase, Authentication, URL Configuration: set Site URL to the app's address and add it under Redirect URLs.
 4. **Admins.** After signing up, add yourself in SQL Editor: `insert into public.admins (user_id) values ('<your user id>');`

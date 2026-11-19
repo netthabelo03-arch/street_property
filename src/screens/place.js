@@ -12,6 +12,7 @@ import { startEnquiry, myEnquiryFor } from '../enquiries/api.js';
 import { firstMessage, MESSAGE_MAX } from '../enquiries/rules.js';
 import { friendlyListingError } from '../listings/errors.js';
 import { saveNext } from '../next.js';
+import { savedIds, saveListing, unsaveListing } from '../saved/api.js';
 import { topBar, tabBar } from '../shell.js';
 import { el, messageBox, whileBusy } from '../dom.js';
 
@@ -115,6 +116,7 @@ export async function renderPlace({ session, route }) {
       el('span', { class: 'chip chip--good', text: 'Filmed on site' }),
       el('span', { class: 'chip chip--good', text: 'Checked by Street Property' }),
     ]),
+    ...(mine ? [] : [await heartButton({ session, listing })]),
     el('section', { class: 'section' }, [
       el('h2', { class: 'section__title', text: 'The place' }),
       el('ul', { class: 'plain-list' }, facts.map((line) => el('li', { text: line }))),
@@ -181,4 +183,42 @@ async function askSection({ session, listing, mine }) {
     });
   });
   return [el('section', { class: 'section ask' }, [heading, form, el('p', { class: 'field__hint', text: 'You can suggest a viewing time in the conversation. Your number stays private until you choose to share it.' }), safety])];
+}
+
+/** Save / Saved, the same heart as in the tour feed. */
+async function heartButton({ session, listing }) {
+  const button = el('button', { type: 'button', class: 'button button--quiet heart-button' });
+  let on = false;
+  if (session) {
+    try {
+      on = (await savedIds(session.user.id)).has(listing.id);
+    } catch {
+      on = false;
+    }
+  }
+  const draw = () => {
+    button.textContent = on ? '♥ Saved' : '♡ Save this place';
+    button.setAttribute('aria-pressed', String(on));
+    button.classList.toggle('heart-button--on', on);
+  };
+  draw();
+  button.addEventListener('click', async () => {
+    if (!session) {
+      saveNext(`#/place/${listing.id}`);
+      window.location.hash = '#/signin';
+      return;
+    }
+    const was = on;
+    on = !on;
+    draw();
+    try {
+      if (was) await unsaveListing(listing.id, session.user.id);
+      else await saveListing(listing.id);
+    } catch (error) {
+      on = was;
+      draw();
+      button.textContent = friendlyListingError(error);
+    }
+  });
+  return button;
 }

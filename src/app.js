@@ -22,6 +22,8 @@ import { renderPlace } from './screens/place.js';
 import { renderMap } from './screens/map.js';
 import { renderEnquiries } from './screens/enquiries.js';
 import { renderConversation } from './screens/conversation.js';
+import { renderTours } from './screens/tours.js';
+import { renderSaved } from './screens/saved.js';
 import { forgetViewer } from './viewer.js';
 
 const SCREENS = {
@@ -45,6 +47,8 @@ const SCREENS = {
   map: renderMap,
   enquiries: renderEnquiries,
   enquiry: renderConversation,
+  tours: renderTours,
+  saved: renderSaved,
 };
 
 const root = document.getElementById('app');

@@ -24,7 +24,7 @@ export function tabs() {
   return [
     { id: 'explore', text: 'Explore', href: '#/' },
     { id: 'map', text: 'Map', href: '#/map' },
-    { id: 'saved', text: 'Saved', href: null },
+    { id: 'saved', text: 'Saved', href: '#/saved' },
     { id: 'enquiries', text: 'Enquiries', href: '#/enquiries' },
     { id: 'profile', text: 'Profile', href: '#/profile' },
   ];

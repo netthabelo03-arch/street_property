@@ -15,6 +15,8 @@
 //   #/review/<id>            check one listing
 //   #/filters                Explore's filters (anyone)
 //   #/map                    live listings on a map (anyone)
+//   #/tours                  the tour feed (anyone)
+//   #/saved                  saved places
 //   #/enquiries              viewings and conversations
 //   #/enquiries/<id>         one conversation
 //   #/place/<id>             a live listing (anyone)
@@ -24,10 +26,10 @@ import { isUuid } from './listings/rules.js';
 const EXPLORE = { screen: 'explore' };
 
 /** Screens whose address is just their name, like "#/signin". */
-const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters', 'map', 'enquiries'];
+const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters', 'map', 'enquiries', 'saved', 'tours'];
 
 /** Screens that only a signed-in person may open. */
-export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing', 'enquiries', 'enquiry'];
+export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing', 'enquiries', 'enquiry', 'saved'];
 
 /** Screens that make no sense once signed in. */
 export const GUEST_SCREENS = ['signup', 'signin', 'forgot'];
@@ -85,7 +87,7 @@ export function hashFor(route) {
 export function safeNext(hash) {
   if (typeof hash !== 'string') return null;
   const route = parseRoute(hash);
-  const allowed = PROTECTED_SCREENS.includes(route.screen) || route.screen === 'place';
+  const allowed = PROTECTED_SCREENS.includes(route.screen) || route.screen === 'place' || route.screen === 'tours';
   if (!allowed || route.screen === 'new-password') return null;
   return hashFor(route) === hash ? hash : null;
 }
@@ -93,6 +95,7 @@ export function safeNext(hash) {
 /** Which bottom-bar tab a screen belongs to, so it can be highlighted. */
 export function tabFor(screen) {
   if (screen === 'map') return 'map';
+  if (screen === 'saved') return 'saved';
   if (screen === 'enquiries' || screen === 'enquiry') return 'enquiries';
   if (['profile', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing'].includes(screen)) return 'profile';
   return 'explore';

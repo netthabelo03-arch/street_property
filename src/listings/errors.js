@@ -32,6 +32,7 @@ const BY_HINT = {
   viewing_not_waiting: 'This viewing has changed. Pull down or reopen the conversation to see the latest.',
   own_proposal: 'The other person needs to answer your suggested time.',
   report_reason: 'Say in a few words what went wrong.',
+  too_many_saved: 'You can save up to 200 places. Remove some first.',
 };
 
 // Problems from the phone itself (photos, camera, location).
