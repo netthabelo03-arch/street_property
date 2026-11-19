@@ -12,3 +12,4 @@
 | D-008 | 2026-11-19 | 5 | 5 | Tours | A clip could stay paused on its first frame when the phone ignored play() while it was loading | Play is tried again as soon as the clip can play (tour feed and full-screen tour) | Medium | Fixed |
 | D-009 | 2026-11-19 | 6 | 7 | Street Verified | Document photos were shrunk like listing photos (1600 px), so small print on a deed or rates account could be unreadable | Documents keep up to 2600 px (6 MB) | Medium | Fixed |
 | D-010 | 2026-11-19 | 6 | 7 | Street Verified | The ID and selfie pickers also offered PDFs although they open the camera | Photos only, button says "Take a photo" | Low | Fixed |
+| D-011 | 2026-11-19 | 8 | 8 | Lease | The lease end date was worked out as a timestamp, so writing the lease failed (found by the dry run, before release) | The end date is a date | High | Fixed |

@@ -171,7 +171,7 @@ export async function renderEnquiryCheck({ session, navigate, route }) {
     el('p', { class: 'note', text: `${first} chose to share this with you. You never see their documents or exact income.` }),
     message.node,
     ...(decided
-      ? [el('p', { class: 'message message--success', text: `You said yes to ${first}. Agree on the details in the conversation; signing the lease in the app is coming soon.` })]
+      ? [el('p', { class: 'message message--success', text: `You said yes to ${first}. The lease and the move-in check are in your conversation.` }), el('a', { href: `#/enquiries/${route.id}`, class: 'button button--primary', text: 'Go to the deal' })]
       : [el('div', { class: 'button-row' }, [no, yes]), el('p', { class: 'field__hint', text: `If you say not this time, ${first} is told politely and their details are removed from your view.` })]),
     tabBar('enquiries'),
   ];

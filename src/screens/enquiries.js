@@ -4,6 +4,8 @@
 import { loadViewer } from '../viewer.js';
 import { listEnquiries } from '../enquiries/api.js';
 import { upcomingViewings, viewingParts, viewingStatus, shortTime, initials, enquiryTitle } from '../enquiries/rules.js';
+import { myDeals } from '../deals/api.js';
+import { listingTitle, formatRands } from '../listings/rules.js';
 import { topBar, tabBar } from '../shell.js';
 import { el } from '../dom.js';
 
@@ -45,7 +47,13 @@ function messageRow(item) {
 
 export async function renderEnquiries({ session }) {
   const { profile } = await loadViewer(session);
-  const items = await listEnquiries();
+  const [items, deals] = await Promise.all([listEnquiries(), myDeals().catch(() => [])]);
+  const openDeals = deals.filter((d) => d.status !== 'cancelled');
+  const DEAL_WORDS = { agreeing: 'Lease to fill in', signing: 'Lease to sign', signed: 'Move-in check', moved_in: 'Moved in' };
+  const dealRows = openDeals.map((d) => el('li', {}, [el('a', { class: 'deal-link', href: `#/deals/${d.id}` }, [
+    el('span', { class: 'deal-link__title', text: `${listingTitle({ kind: d.listing_kind, bedrooms: d.listing_bedrooms, area: d.area })} · ${formatRands(d.rent_rands)}` }),
+    el('span', { class: 'deal-link__line', text: `${d.my_side === 'owner' ? 'Renting to' : 'Renting from'} ${d.other_name} · ${DEAL_WORDS[d.status] ?? ''}` }),
+  ])]));
   const viewings = upcomingViewings(items);
   let tab = lastTab ?? (viewings.length ? 'viewings' : 'messages');
 
@@ -81,6 +89,7 @@ export async function renderEnquiries({ session }) {
   return [
     topBar({ profile, session }),
     el('h1', { class: 'title', text: 'Enquiries' }),
+    ...(dealRows.length ? [el('h2', { class: 'section__title', text: 'Street Safe deals' }), el('ul', { class: 'row-list' }, dealRows)] : []),
     el('div', { class: 'segmented', role: 'group', 'aria-label': 'Viewings or messages' }, switches.map(({ button }) => button)),
     body,
     el('p', { class: 'note', text: 'Never pay a deposit or rent before you have viewed the place and signed a lease. Street Property will never ask you to pay into a personal account.' }),

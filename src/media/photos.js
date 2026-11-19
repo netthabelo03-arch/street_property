@@ -61,3 +61,38 @@ export async function shrinkPhoto(file, { max = 1600, maxBytes = MAX_BYTES } = {
   }
   throw { code: 'photo_too_big' };
 }
+
+/**
+ * Shrink a photo and burn a line of text (place, room, time) into its bottom
+ * edge, so the photo carries when it was taken wherever it is shown.
+ * @returns {Promise<Blob>} a JPEG
+ */
+export async function stampPhoto(file, text, { max = 1600, maxBytes = MAX_BYTES } = {}) {
+  if (!String(file.type).startsWith('image/')) throw { code: 'not_a_photo' };
+  let picture;
+  try {
+    picture = await decode(file);
+  } catch {
+    throw { code: 'not_a_photo' };
+  }
+  const size = fitWithin(picture.width || picture.naturalWidth, picture.height || picture.naturalHeight, max);
+  const canvas = document.createElement('canvas');
+  canvas.width = size.width;
+  canvas.height = size.height;
+  const pen = canvas.getContext('2d');
+  pen.drawImage(picture, 0, 0, size.width, size.height);
+  if (typeof picture.close === 'function') picture.close();
+  const fontSize = Math.max(14, Math.round(size.width / 40));
+  const band = Math.round(fontSize * 2);
+  pen.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  pen.fillRect(0, size.height - band, size.width, band);
+  pen.fillStyle = '#ffffff';
+  pen.font = `600 ${fontSize}px system-ui, sans-serif`;
+  pen.textBaseline = 'middle';
+  pen.fillText(text, Math.round(fontSize * 0.7), size.height - band / 2, size.width - fontSize * 1.4);
+  for (const quality of [0.82, 0.7, 0.55]) {
+    const blob = await toBlob(canvas, quality);
+    if (blob.size <= maxBytes) return blob;
+  }
+  throw { code: 'photo_too_big' };
+}

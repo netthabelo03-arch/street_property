@@ -324,3 +324,29 @@ body.tour-open { overflow: hidden; }
 .cover--low .cover__x { color: var(--color-danger); }
 select.input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--color-text-muted) 50%), linear-gradient(135deg, var(--color-text-muted) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
 .verify-link--quiet { background: var(--color-panel); border-color: var(--color-line); } .verify-link--quiet .verify-link__title { color: var(--color-text); } .report-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: var(--radius-card); background: var(--color-panel); border: 1px solid var(--color-line); }
+
+/* The deal (Sprint 8) --------------------------------------------------------- */
+.check-card--now { border-color: var(--color-warning); }
+.check-card--now .check-card__n { background: var(--color-warning); color: #1a1a1a; }
+.check-card--next, .check-card--coming { opacity: 0.75; }
+.check-card--coming .check-card__title::after { content: ' · Sprint 9'; font-weight: 400; color: var(--color-text-muted); font-size: 13px; }
+.chip:empty { display: none; }
+.note--warning { background: var(--color-warning-bg); color: var(--color-warning); }
+.lease-terms { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 16px; border-radius: var(--radius-card); background: var(--color-surface-raised); }
+.lease-text { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-body, system-ui, sans-serif); font-size: 15px; line-height: 1.55; padding: 16px; border-radius: var(--radius-card); background: var(--color-panel); border: 1px solid var(--color-line); max-height: 60vh; overflow-y: auto; margin: 0; }
+.signature { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--color-line); }
+.signature__label { font-size: 13px; color: var(--color-text-muted); width: 72px; }
+.signature__name { font-weight: 700; font-style: italic; }
+.signature__when { font-size: 13px; color: var(--color-text-muted); }
+.checkbox { display: flex; gap: 10px; align-items: flex-start; min-height: var(--touch-target); }
+.checkbox input { width: 22px; height: 22px; margin-top: 2px; flex: none; }
+.room-list { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.progress { height: 8px; border-radius: 999px; background: var(--color-surface-raised); overflow: hidden; }
+.progress__bar { display: block; height: 100%; background: var(--color-accent); }
+.deal-link { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: var(--radius-card); background: #14302B; border: 1px solid #24564C; color: var(--color-text); text-decoration: none; }
+.deal-link__title { font-weight: 700; }
+.deal-link__line { font-size: 14px; color: var(--color-text-soft); }
+@media print {
+  .topbar, .tabbar, .text-link, .button, .note--warning { display: none !important; }
+  .lease-text { max-height: none; overflow: visible; border: 0; background: #fff; color: #000; }
+}

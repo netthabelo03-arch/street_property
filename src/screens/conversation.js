@@ -13,6 +13,8 @@ import {
 import { friendlyListingError } from '../listings/errors.js';
 import { renterCheckFor, myRenterCheck, shareRenterCheck, stopSharing } from '../renter/api.js';
 import { coverLine, checkShare, LEASE_CHOICES, HOUSEHOLD_MAX } from '../renter/rules.js';
+import { dealFor, metState, markMet } from '../deals/api.js';
+import { currentPosition } from '../media/recorder.js';
 import { topBar, tabBar, refreshUnread } from '../shell.js';
 import { el, messageBox, whileBusy } from '../dom.js';
 
@@ -39,6 +41,58 @@ export async function renderConversation({ session, route }) {
   const list = el('ol', { class: 'bubbles', 'aria-live': 'polite' });
   const renter = el('section', { class: 'renter-panel', 'aria-label': 'Renter check' });
 
+  // The Street Safe deal that starts when the owner says yes.
+  async function dealLink() {
+    let deal = null;
+    try {
+      deal = await dealFor(item.id);
+    } catch {
+      deal = null;
+    }
+    if (!deal) return [];
+    const lines = {
+      agreeing: item.my_side === 'owner' ? 'Next: fill in the lease.' : 'Next: the owner fills in the lease.',
+      signing: 'The lease is ready to sign.',
+      signed: 'Next: the move-in check together.',
+      moved_in: 'Keys handed over.',
+      cancelled: 'This deal was called off.',
+    };
+    return [el('a', { class: 'deal-link', href: `#/deals/${deal.id}` }, [
+      el('span', { class: 'deal-link__title', text: 'Street Safe deal →' }),
+      el('span', { class: 'deal-link__line', text: lines[deal.status] ?? '' }),
+    ])];
+  }
+
+  // "We met": both tap it at the address during a confirmed viewing.
+  async function metPanel() {
+    if (item.viewing_status !== 'confirmed' || !item.viewing_id) return [];
+    const startsAt = new Date(item.viewing_at).getTime();
+    const now = Date.now();
+    if (now < startsAt - 30 * 60000 || now > startsAt + 7 * 86400000) return [];
+    let met = null;
+    try {
+      met = await metState(item.viewing_id);
+    } catch {
+      met = null;
+    }
+    const mine = item.my_side === 'renter' ? met?.met_renter_at : met?.met_owner_at;
+    const theirs = item.my_side === 'renter' ? met?.met_owner_at : met?.met_renter_at;
+    if (mine && theirs) return [el('p', { class: 'message message--success', text: 'You both confirmed you met at the place.' })];
+    if (mine) return [el('p', { class: 'field__hint', text: `You tapped "We met". Waiting for ${item.other_name}.` })];
+    const tap = el('button', { type: 'button', class: 'button button--primary', text: 'We met' });
+    tap.addEventListener('click', () => whileBusy(tap, 'Checking where you are…', async () => {
+      message.clear();
+      try {
+        const spot = await currentPosition();
+        await markMet(item.viewing_id, spot);
+        await reload();
+      } catch (problem) {
+        message.show(friendlyListingError(problem));
+      }
+    }));
+    return [tap, el('p', { class: 'field__hint', text: 'At the viewing, both of you tap this. It uses your location once to show you met at the place.' })];
+  }
+
   // The renter check: the renter shares it here; the owner opens it from here.
   async function drawRenter() {
     let check = null;
@@ -54,7 +108,7 @@ export async function renderConversation({ session, route }) {
         return;
       }
       if (check.owner_decision === 'accepted') {
-        renter.replaceChildren(title, el('p', { class: 'message message--success', text: `You said yes to ${item.other_name}.` }), el('a', { href: `#/enquiries/${item.id}/check`, class: 'button button--quiet', text: 'Open renter check' }));
+        renter.replaceChildren(title, el('p', { class: 'message message--success', text: `You said yes to ${item.other_name}.` }), ...(await dealLink()), el('a', { href: `#/enquiries/${item.id}/check`, class: 'button button--quiet', text: 'Open renter check' }));
         return;
       }
       if (check.owner_decision === 'declined' || !check.shared_at) {
@@ -69,7 +123,7 @@ export async function renderConversation({ session, route }) {
     }
     // The renter's side
     if (check?.owner_decision === 'accepted') {
-      renter.replaceChildren(title, el('p', { class: 'message message--success', text: `${item.other_name} said yes. Agree on the details here.` }));
+      renter.replaceChildren(title, el('p', { class: 'message message--success', text: `${item.other_name} said yes.` }), ...(await dealLink()));
       return;
     }
     if (check?.owner_decision === 'declined') {
@@ -231,6 +285,9 @@ export async function renderConversation({ session, route }) {
         parts.push(el('div', { class: 'button-row' }, [yes, no]));
       }
       if (item.viewing_status === 'confirmed') {
+        const metSlot = el('div', { class: 'stack' });
+        metPanel().then((nodes) => metSlot.replaceChildren(...nodes)).catch(() => {});
+        parts.push(metSlot);
         parts.push(el('p', { class: 'field__hint', text: item.my_side === 'renter'
           ? `Address: ${item.street}, ${item.listing_area}, ${item.listing_city}`
           : 'The renter can now see the full address.' }));
