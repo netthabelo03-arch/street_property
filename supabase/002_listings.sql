@@ -1,6 +1,8 @@
 -- Sprint 1: listings, their photos, the video tour, and the review queue.
 -- Run this once in the Supabase dashboard (SQL Editor) after 001_profiles.sql.
--- Safe to run again; it does not delete data.
+-- Safe to run again; it does not delete data. If you run it again after
+-- 004_map.sql, run 004_map.sql again too: this file gives read access to
+-- every column, and 004 takes the exact address back.
 --
 -- A listing moves through these states:
 --   draft          the owner is still filling it in
