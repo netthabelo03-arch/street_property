@@ -214,7 +214,7 @@ export function fakeCameraStream() {
     const name = document.querySelector('.room--now .room__name')?.textContent ?? 'Lounge';
     const t = ((performance.now() - started) / 8000) % 1;
     const pan = t < 0.5 ? t * 2 : 2 - t * 2;
-    paintRoom(ctx, canvas.width, canvas.height, sceneFor(name), `${name} (simulated camera)`, pan);
+    paintRoom(ctx, canvas.width, canvas.height, sceneFor(name), `${name} · simulated`, pan);
   };
   draw();
   const timer = setInterval(draw, 1000 / 30);

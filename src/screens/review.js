@@ -4,7 +4,7 @@
 
 import { loadViewer } from '../viewer.js';
 import { reviewQueue, getListing, listPhotos, listClips, reviewListing } from '../listings/api.js';
-import { FEATURES, listingTitle, priceLine, tourRooms, formatSeconds, formatRands, findKind, clipDistances, missingForReview } from '../listings/rules.js';
+import { FEATURES, listingTitle, priceLine, tourRooms, formatSeconds, formatRands, findKind, clipDistances, missingForReview, formatDistance } from '../listings/rules.js';
 import { friendlyListingError } from '../listings/errors.js';
 import { topBar, tabBar } from '../shell.js';
 import { el, messageBox, whileBusy } from '../dom.js';
@@ -81,7 +81,7 @@ export async function renderReviewListing({ session, navigate, route }) {
     if (clip.url) player.src = clip.url;
     const place = clip.room === 'outside'
       ? 'Where the tour starts'
-      : distance?.metres == null ? 'No outside clip to compare with' : `${distance.metres} m from the outside clip`;
+      : distance?.metres == null ? 'No outside clip to compare with' : `${formatDistance(distance.metres)} from the outside clip`;
     return el('li', { class: `review-clip${distance?.far ? ' review-clip--far' : ''}` }, [
       el('p', { class: 'review-clip__title', text: `${roomName(clip.room)} · ${formatSeconds(clip.seconds)}` }),
       player,

@@ -212,6 +212,12 @@ export function distanceMeters(a, b) {
   return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+/** 45 → "45 m", 17283 → "17.3 km" */
+export function formatDistance(metres) {
+  const value = Math.round(Number(metres) || 0);
+  return value < 1000 ? `${value} m` : `${(value / 1000).toFixed(value < 10000 ? 2 : 1).replace(/\.?0+$/, '')} km`;
+}
+
 /**
  * For the reviewer: how far each clip was filmed from the outside clip. A clip
  * more than `limit` metres away (allowing for the phone's stated accuracy) is

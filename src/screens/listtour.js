@@ -172,6 +172,7 @@ export async function renderListTour({ session, route }) {
     const room = rooms.find((item) => item.id === current);
     const again = clips.some((clip) => clip.room === current);
     if (recording) return;
+    recLabel.textContent = stream ? `Ready: ${room.name}` : 'Camera off';
     record.disabled = !stream || secondsLeft(clips, current) < 1;
     record.textContent = !stream ? 'Start the camera to record'
       : secondsLeft(clips, current) < 1 ? 'The tour is full (2:00)'

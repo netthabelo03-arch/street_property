@@ -5,7 +5,7 @@ import {
   MODES, KINDS, FEATURES, PRICE_LIMITS, PHOTOS, TOUR, STATUSES,
   isEditable, parseRands, formatRands, listingTitle, priceLine, checkDetails,
   tourRooms, formatSeconds, secondsLeft, missingForReview, distanceMeters, clipDistances,
-  pickVideoType, videoExtension, fitWithin, isUuid,
+  pickVideoType, videoExtension, fitWithin, isUuid, formatDistance,
 } from '../src/listings/rules.js';
 import { friendlyListingError, cameraProblem } from '../src/listings/errors.js';
 import { parseRoute, hashFor, safeNext, resolveRoute, tabFor, PROTECTED_SCREENS } from '../src/router.js';
@@ -219,4 +219,14 @@ test('S1: the app can never set a listing\'s state, review or location itself', 
   for (const fn of ['tour_code', 'add_tour_clip', 'submit_listing', 'withdraw_listing', 'review_listing']) {
     assert.match(sql, new RegExp(`revoke all on function public\\.${fn}\\([^)]*\\) from public, anon;`), fn);
   }
+});
+
+test('S1: distances read naturally for the reviewer', () => {
+  assert.equal(formatDistance(6), '6 m');
+  assert.equal(formatDistance(999.4), '999 m');
+  assert.equal(formatDistance(1000), '1 km');
+  assert.equal(formatDistance(1500), '1.5 km');
+  assert.equal(formatDistance(2345), '2.35 km');
+  assert.equal(formatDistance(17283), '17.3 km');
+  assert.equal(formatDistance(20000), '20 km');
 });

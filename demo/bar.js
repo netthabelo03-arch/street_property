@@ -91,6 +91,8 @@ function fillDetails() {
   const plus = document.querySelector('[aria-label="One more: Bedrooms"]');
   const value = () => Number(document.getElementById('bedrooms-value')?.textContent);
   for (let i = 0; i < 5 && value() < 2; i += 1) plus?.click();
+  const parkingPlus = document.querySelector('[aria-label="One more: Parking bays"]');
+  if (Number(document.getElementById('parking-value')?.textContent) < 1) parkingPlus?.click();
   for (const id of ['prepaid', 'power_backup', 'security']) {
     const box = document.getElementById(`feature-${id}`);
     if (box) box.checked = true;
