@@ -225,3 +225,41 @@ export async function leaseFingerprint(text, subtle = globalThis.crypto?.subtle)
 export function shortFingerprint(hash) {
   return String(hash ?? '').slice(0, 8).toUpperCase().replace(/(.{4})/, '$1 ');
 }
+
+// Rent record (Sprint 10) ----------------------------------------------------------
+
+/** "January 2027" */
+export function monthWords(day) {
+  return new Date(`${day}T12:00:00Z`).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+/**
+ * Where a month of rent stands: 'paid', 'paying' (Street Safe payment on its
+ * way), 'late' (more than 3 days after the due date), 'due' (from 10 days
+ * before the due date), or 'later'.
+ */
+export function rentStatus(line, today) {
+  if (line.state === 'paid') return 'paid';
+  if (line.state === 'waiting') return 'paying';
+  const days = Math.round((new Date(`${line.due_date}T00:00:00Z`) - new Date(`${today}T00:00:00Z`)) / 86400000);
+  if (days < -3) return 'late';
+  if (days <= 10) return 'due';
+  return 'later';
+}
+
+/** The month the renter can pay now: the earliest unpaid one, if it is due. */
+export function rentToPay(lines, today) {
+  const first = lines.find((line) => line.state !== 'paid');
+  if (!first) return null;
+  return ['due', 'late', 'paying'].includes(rentStatus(first, today)) ? first : null;
+}
+
+/** "4.8 from 5 renters" / "New: no reviews yet" */
+export function ratingLine(summary, side) {
+  const count = Number(summary?.reviews ?? 0);
+  if (!count) return null;
+  const who = side === 'owner' ? (count === 1 ? 'renter' : 'renters') : (count === 1 ? 'owner' : 'owners');
+  return `★ ${Number(summary.average).toFixed(1)} from ${count} ${who}`;
+}
+
+export const REVIEW_WORDS_MAX = 500;

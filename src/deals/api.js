@@ -147,3 +147,43 @@ export async function depositParts(dealId) {
   const client = await getClient();
   return check(await client.from('deposit_payments').select('part, amount_rands, due_date, safe_state, paid_at').eq('deal_id', dealId).order('part'));
 }
+
+// Rent record and reviews (Sprint 10) -----------------------------------------------
+
+export async function rentRecord(dealId) {
+  const client = await getClient();
+  return check(await client.from('rent_payments').select('month_no, due_date, amount_rands, state, method, note, paid_at').eq('deal_id', dealId).order('month_no'));
+}
+
+export async function markRentReceived(dealId, month, note) {
+  const client = await getClient();
+  check(await client.rpc('mark_rent_received', { p_deal: dealId, p_month: month, p_note: note || null }));
+}
+
+export async function reviewDeal(dealId, stars, words) {
+  const client = await getClient();
+  return check(await client.rpc('review_deal', { p_deal: dealId, p_stars: stars, p_words: words || null }));
+}
+
+export async function dealReviews(dealId) {
+  const client = await getClient();
+  return check(await client.rpc('deal_reviews_for', { p_deal: dealId }));
+}
+
+/** { average, reviews } for someone as an owner ('owner') or as a renter ('renter'). */
+export async function ratingSummary(userId, side) {
+  const client = await getClient();
+  const rows = check(await client.rpc('rating_summary', { p_user: userId, p_side: side }));
+  return rows[0] ?? { average: null, reviews: 0 };
+}
+
+export async function reviewsAbout(userId, side) {
+  const client = await getClient();
+  return check(await client.rpc('reviews_about', { p_user: userId, p_side: side }));
+}
+
+export async function renterRatingFor(enquiryId) {
+  const client = await getClient();
+  const rows = check(await client.rpc('renter_rating_for', { p_enquiry: enquiryId }));
+  return rows[0] ?? { average: null, reviews: 0 };
+}

@@ -13,6 +13,8 @@
 //                      into TradeSafe (returns TradeSafe's payment page).
 //   action "pay_part"→ after moving in, the renter pays a later part of a
 //                      deposit plan; TradeSafe passes it straight to the owner.
+//   action "pay_rent"→ after moving in, the renter pays a month's rent; TradeSafe
+//                      passes it straight to the owner.
 //   action "sync"    → checks the payments with TradeSafe and acts on the deal:
 //                      keys confirmed → pay the owner; deal called off → refund.
 //   ?callback=<key>  → TradeSafe tells us a transaction changed. The message is
@@ -134,6 +136,7 @@ type Deal = {
   safe_tx: string | null; safe_state: string;
 };
 type Part = { deal_id: string; part: number; amount_rands: number; due_date: string; safe_tx: string | null; safe_state: string };
+type RentLine = { deal_id: string; month_no: number; amount_rands: number; due_date: string; safe_tx: string | null; state: string };
 
 async function loadDeal(id: string): Promise<Deal | null> {
   const { data } = await db.from('deals')
@@ -197,21 +200,82 @@ async function reconcile(deal: Deal) {
   return state;
 }
 
+/** A pass-through payment (rent, later deposit parts): once TradeSafe has it, release it to the owner. */
+async function settlePassThrough(txId: string) {
+  const data = await gql('query transaction($id: ID!) { transaction(id: $id) { id state allocations { id state } } }', { id: txId });
+  const tx = data.transaction;
+  const state = PAID.includes(tx.state) ? 'paid' : RELEASED.includes(tx.state) ? 'released' : REFUNDED.includes(tx.state) ? 'refunded' : 'waiting';
+  if (state !== 'paid') return state;
+  for (const allocation of tx.allocations ?? []) {
+    if (!['INITIATED', 'SENT', 'DELIVERED'].includes(allocation.state)) {
+      await gql('mutation allocationStartDelivery($id: ID!) { allocationStartDelivery(id: $id) { id state } }', { id: allocation.id });
+    }
+    await gql('mutation allocationAcceptDelivery($id: ID!) { allocationAcceptDelivery(id: $id) { id state } }', { id: allocation.id });
+  }
+  return 'released';
+}
+
+async function rentLines(dealId: string): Promise<RentLine[]> {
+  const { data, error } = await db.from('rent_payments').select('deal_id, month_no, amount_rands, due_date, safe_tx, state').eq('deal_id', dealId).order('month_no');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as RentLine[];
+}
+
+async function reconcileRent(deal: Deal, line: RentLine) {
+  if (!line.safe_tx || line.state === 'paid') return line.state;
+  const state = await settlePassThrough(line.safe_tx);
+  const { data, error } = await db.rpc('safe_record_rent', { p_deal: deal.id, p_month: line.month_no, p_state: state });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+function monthWords(day: string) {
+  return new Date(`${day}T12:00:00Z`).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+async function payRent(deal: Deal, userId: string, month: number) {
+  if (deal.renter_id !== userId) throw new UserProblem('not_the_renter');
+  if (deal.status !== 'moved_in') throw new UserProblem('part_after_keys');
+  const lines = await rentLines(deal.id);
+  const line = lines.find((l) => l.month_no === month);
+  if (!line) throw new UserProblem('rent_month_missing');
+  if (line.state === 'paid') throw new UserProblem('already_paid');
+  const first = lines.find((l) => l.state !== 'paid');
+  if (first && first.month_no !== month) throw new UserProblem('rent_in_order');
+  const today = new Date().toISOString().slice(0, 10);
+  const soon = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
+  if (line.due_date > soon && line.due_date > today) throw new UserProblem('rent_too_early');
+  const { data: owner } = await db.from('safe_accounts').select('token, can_receive').eq('user_id', deal.owner_id).maybeSingle();
+  if (!owner?.can_receive) throw new UserProblem('owner_not_ready');
+  let txId = line.safe_tx;
+  if (!txId) {
+    const renter = await renterToken(userId);
+    const title = `Rent for ${monthWords(line.due_date)}`;
+    const created = await gql(`mutation transactionCreate($input: CreateTransactionInput!) {
+        transactionCreate(input: $input) { id } }`, {
+      input: {
+        title: `${title}: ${placeName(deal)}`,
+        description: 'Rent paid through Street Property, passed to the owner once received.',
+        industry: 'GENERAL_GOODS_SERVICES',
+        currency: 'ZAR',
+        feeAllocation: FEE_PAYER,
+        workflow: 'STANDARD',
+        allocations: { create: [{ title, description: `Due ${line.due_date}`, value: line.amount_rands, daysToDeliver: 7, daysToInspect: 1 }] },
+        parties: { create: [{ token: renter, role: 'BUYER' }, { token: owner.token, role: 'SELLER' }] },
+      },
+    });
+    txId = created.transactionCreate.id as string;
+    const { error } = await db.rpc('safe_record_rent', { p_deal: deal.id, p_month: month, p_state: 'waiting', p_tx: txId });
+    if (error) throw new Error(error.message);
+  }
+  const link = await gql('mutation checkoutLink($id: ID!) { checkoutLink(transactionId: $id) }', { id: txId });
+  return link.checkoutLink as string;
+}
+
 /** A later deposit part: once TradeSafe has it, pass it straight to the owner. */
 async function reconcilePart(deal: Deal, part: Part) {
   if (!part.safe_tx || ['released', 'refunded'].includes(part.safe_state)) return part.safe_state;
-  const data = await gql('query transaction($id: ID!) { transaction(id: $id) { id state allocations { id state } } }', { id: part.safe_tx });
-  const tx = data.transaction;
-  let state = PAID.includes(tx.state) ? 'paid' : RELEASED.includes(tx.state) ? 'released' : REFUNDED.includes(tx.state) ? 'refunded' : 'waiting';
-  if (state === 'paid') {
-    for (const allocation of tx.allocations ?? []) {
-      if (!['INITIATED', 'SENT', 'DELIVERED'].includes(allocation.state)) {
-        await gql('mutation allocationStartDelivery($id: ID!) { allocationStartDelivery(id: $id) { id state } }', { id: allocation.id });
-      }
-      await gql('mutation allocationAcceptDelivery($id: ID!) { allocationAcceptDelivery(id: $id) { id state } }', { id: allocation.id });
-    }
-    state = 'released';
-  }
+  const state = await settlePassThrough(part.safe_tx);
   if (state !== part.safe_state) {
     const { error } = await db.rpc('safe_record_part', { p_deal: deal.id, p_part: part.part, p_state: state });
     if (error) throw new Error(error.message);
@@ -331,8 +395,10 @@ Deno.serve(async (request) => {
         if (deal) await reconcile(deal).catch((e) => console.error('callback', e.message));
       } else {
         const { data: part } = await db.from('deposit_payments').select('deal_id, part, amount_rands, due_date, safe_tx, safe_state').eq('safe_tx', txId).maybeSingle();
-        const deal = part ? await loadDeal(part.deal_id) : null;
+        const { data: rent } = part ? { data: null } : await db.from('rent_payments').select('deal_id, month_no, amount_rands, due_date, safe_tx, state').eq('safe_tx', txId).maybeSingle();
+        const deal = part ? await loadDeal(part.deal_id) : rent ? await loadDeal(rent.deal_id) : null;
         if (deal && part) await reconcilePart(deal, part as Part).catch((e) => console.error('callback part', e.message));
+        if (deal && rent) await reconcileRent(deal, rent as RentLine).catch((e) => console.error('callback rent', e.message));
       }
     }
     return new Response('ok');
@@ -354,13 +420,18 @@ Deno.serve(async (request) => {
     if (!deal || ![deal.owner_id, deal.renter_id].includes(userId)) return problem('deal_not_found', 404);
     if (body.action === 'pay') return reply({ url: await pay(deal, userId) });
     if (body.action === 'pay_part') return reply({ url: await payPart(deal, userId, Number(body.part)) });
+    if (body.action === 'pay_rent') return reply({ url: await payRent(deal, userId, Number(body.month)) });
     if (body.action === 'sync') {
       const state = await reconcile(deal);
       const parts: Record<number, string> = {};
       for (const part of await laterParts(deal.id)) {
         if (['waiting', 'paid'].includes(part.safe_state)) parts[part.part] = await reconcilePart(deal, part);
       }
-      return reply({ state, parts });
+      const rent: Record<number, string> = {};
+      for (const line of await rentLines(deal.id)) {
+        if (line.state === 'waiting') rent[line.month_no] = await reconcileRent(deal, line);
+      }
+      return reply({ state, parts, rent });
     }
     return problem('bad_request');
   } catch (error) {

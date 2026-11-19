@@ -91,6 +91,16 @@ const BY_HINT = {
   deposit_parts_small: 'A deposit paid in parts must be at least R300 a part.',
   part_after_keys: 'Later deposit parts are paid after you have moved in.',
   deposit_part_missing: 'That deposit part was not found.',
+  // Rent and reviews (Sprint 10)
+  rent_month_missing: 'That month is not in the rent record.',
+  rent_paying: 'A Street Safe payment for this month is on its way. Wait for it before marking it received.',
+  rent_in_order: 'Pay the earliest unpaid month first.',
+  rent_too_early: 'You can pay a month from 10 days before it is due.',
+  review_too_early: 'You can rate the deal once the keys are handed over.',
+  review_closed: 'Reviews close 90 days after the keys.',
+  review_stars: 'Choose 1 to 5 stars.',
+  review_long: 'Keep the review under 500 characters.',
+  review_done: 'You already rated this deal.',
 };
 
 // Problems from the phone itself (photos, camera, location).

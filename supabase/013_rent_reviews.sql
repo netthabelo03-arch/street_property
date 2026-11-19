@@ -353,3 +353,18 @@ end;
 $$;
 revoke all on function public.rating_summary(uuid, text) from public;
 grant execute on function public.rating_summary(uuid, text) to anon, authenticated;
+
+-- The renter's rating, for the owner looking at their shared renter check.
+create or replace function public.renter_rating_for(p_enquiry uuid)
+returns table (average numeric, reviews integer)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select s.average, s.reviews
+  from public.enquiries e, public.rating_summary(e.renter_id, 'renter') s
+  where e.id = p_enquiry and e.owner_id = auth.uid();
+$$;
+revoke all on function public.renter_rating_for(uuid) from public, anon;
+grant execute on function public.renter_rating_for(uuid) to authenticated;

@@ -13,6 +13,8 @@ import { firstMessage, MESSAGE_MAX } from '../enquiries/rules.js';
 import { friendlyListingError } from '../listings/errors.js';
 import { saveNext } from '../next.js';
 import { savedIds, saveListing, unsaveListing } from '../saved/api.js';
+import { ratingSummary } from '../deals/api.js';
+import { ratingLine } from '../deals/rules.js';
 import { topBar, tabBar } from '../shell.js';
 import { el, messageBox, whileBusy } from '../dom.js';
 
@@ -101,6 +103,10 @@ export async function renderPlace({ session, route }) {
     ...(listing.mode === 'rent' && listing.available_from ? [`Available from ${new Date(`${listing.available_from}T12:00:00`).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}`] : []),
     listing.lister === 'agent' ? 'Listed by an agent' : 'Listed by the owner',
   ];
+  const rating = listing.mode === 'rent' && listing.owner_id
+    ? ratingLine(await ratingSummary(listing.owner_id, 'owner').catch(() => null), 'owner')
+    : null;
+  if (rating) facts.push(`${listing.lister === 'agent' ? 'Agent' : 'Owner'} rated ${rating}`);
 
   return [
     bar,

@@ -7,6 +7,8 @@ import { renterStates, coverLine, householdLine, moveInLine } from '../renter/ru
 import { uploadDoc, removeDocs, submitIdentity } from '../verify/api.js';
 import { checkDocFile } from '../verify/rules.js';
 import { getEnquiry } from '../enquiries/api.js';
+import { renterRatingFor } from '../deals/api.js';
+import { ratingLine } from '../deals/rules.js';
 import { enquiryTitle, enquiryPrice, initials } from '../enquiries/rules.js';
 import { friendlyListingError } from '../listings/errors.js';
 import { topBar, tabBar } from '../shell.js';
@@ -115,6 +117,7 @@ export async function renderEnquiryCheck({ session, navigate, route }) {
     ];
   }
   const cover = coverLine(check.cover_ratio);
+  const rating = ratingLine(await renterRatingFor(route.id).catch(() => null), 'renter');
   const message = messageBox();
   const first = check.renter_name.split(' ')[0] || 'this renter';
   const yes = el('button', { type: 'button', class: 'button button--primary', text: `Yes, rent to ${first}` });
@@ -145,6 +148,7 @@ export async function renderEnquiryCheck({ session, navigate, route }) {
         el('h1', { class: 'title title--medium', text: check.renter_name }),
         el('p', { class: 'lead', text: householdLine(check) }),
         el('p', { class: 'field__hint', text: moveInLine(check) }),
+        el('p', { class: 'field__hint', text: rating ?? 'No reviews from owners yet.' }),
       ]),
     ]),
     el('ul', { class: 'check-list' }, [

@@ -5,9 +5,11 @@
 import { loadViewer } from '../viewer.js';
 import {
   getDeal, sendLease, signLease, cancelDeal, inspection, addRoomPhoto, setRoomNote, signInspection, confirmKeys, streetSafe, depositParts,
+  rentRecord, markRentReceived, reviewDeal, dealReviews,
 } from '../deals/api.js';
 import {
   dealSteps, nextAction, checkLeaseTerms, checkSignatureName, roomName, roomProgress, photoStamp, safeTotal, depositPlan, DEPOSIT_PARTS,
+  monthWords, rentStatus, rentToPay, REVIEW_WORDS_MAX,
   leaseFingerprint, shortFingerprint, LEASE_MONTHS, SPECIAL_TERMS_MAX, ROOM_NOTE_MAX, ROOM_PHOTOS_MAX,
 } from '../deals/rules.js';
 import { formatRands, listingTitle } from '../listings/rules.js';
@@ -77,6 +79,66 @@ function needsSync(deal) {
   if (deal.safe_state === 'waiting') return true;
   if (deal.deposit_parts > 1 && deal.status === 'moved_in') return true;
   return deal.safe_state === 'paid' && ['moved_in', 'cancelled'].includes(deal.status);
+}
+
+// Rate your deal ---------------------------------------------------------------------
+
+function starsText(n) {
+  return '★'.repeat(n) + '☆'.repeat(5 - n);
+}
+
+async function reviewCard(deal) {
+  const owner = deal.my_side === 'owner';
+  const rows = await dealReviews(deal.id).catch(() => []);
+  const mine = rows.find((r) => r.mine);
+  const theirs = rows.find((r) => !r.mine);
+  const title = el('h2', { class: 'section__title', text: 'Rate your deal' });
+  const shown = (review, who) => el('div', { class: 'review' }, [
+    el('p', { class: 'review__stars', 'aria-label': `${review.stars} out of 5 stars`, text: starsText(review.stars) }),
+    el('p', { class: 'review__who', text: who }),
+    ...(review.words ? [el('p', { class: 'review__words', text: review.words })] : []),
+  ]);
+  if (mine) {
+    return el('section', { class: 'stack stack--tight' }, [
+      title,
+      shown(mine, 'You'),
+      theirs ? shown(theirs, deal.other_name) : el('p', { class: 'field__hint', text: `${deal.other_name}’s review shows here once they have rated, or 14 days after the keys.` }),
+    ]);
+  }
+  const message = messageBox();
+  const name = `stars-${deal.id}`;
+  const choices = el('div', { class: 'star-picker', role: 'radiogroup', 'aria-label': 'Stars' }, [5, 4, 3, 2, 1].map((n) => {
+    const input = el('input', { type: 'radio', name, id: `${name}-${n}`, value: String(n) });
+    return el('label', { for: `${name}-${n}`, class: 'star-picker__choice' }, [input, el('span', { text: `${starsText(n)}` })]);
+  }));
+  const words = el('textarea', { id: `words-${deal.id}`, class: 'input input--area', rows: '3', maxlength: String(REVIEW_WORDS_MAX),
+    placeholder: owner ? 'How was the renter? Paid on time, looked after the place…' : 'How was the owner and the place? Fixed things, fair, as listed…' });
+  const send = el('button', { type: 'submit', class: 'button button--primary', text: 'Send my rating' });
+  const form = el('form', { class: 'stack', novalidate: '' }, [
+    choices,
+    el('label', { for: `words-${deal.id}`, class: 'field__label', text: 'A few words (optional)' }),
+    words,
+    send,
+    el('p', { class: 'field__hint', text: `${deal.other_name} sees your rating only after rating you too, or 14 days after the keys. Ratings show on ${owner ? 'their renter check' : 'their listings'}.` }),
+  ]);
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    message.clear();
+    const picked = form.querySelector(`input[name="${name}"]:checked`);
+    if (!picked) {
+      message.show('Choose 1 to 5 stars.');
+      return;
+    }
+    whileBusy(send, 'Sending…', async () => {
+      try {
+        await reviewDeal(deal.id, Number(picked.value), words.value.trim());
+        reload();
+      } catch (problem) {
+        message.show(friendlyListingError(problem));
+      }
+    });
+  });
+  return el('section', { class: 'stack stack--tight' }, [title, form, message.node]);
 }
 
 const PART_WORDS = { none: 'To pay', waiting: 'Paying', paid: 'Received', released: 'Paid to the owner', refunded: 'Refunded' };
@@ -182,6 +244,7 @@ export async function renderDeal({ session, route }) {
     actions.push(el('a', { href: `#/deals/${deal.id}/check`, class: 'button button--primary', text: 'Open the move-in check' }));
     actions.push(el('a', { href: `#/deals/${deal.id}/lease`, class: 'button button--quiet', text: 'Read the signed lease' }));
   } else if (deal.status === 'moved_in') {
+    actions.push(el('a', { href: `#/deals/${deal.id}/rent`, class: 'button button--primary', text: 'Rent record' }));
     actions.push(el('a', { href: `#/deals/${deal.id}/check`, class: 'button button--quiet', text: 'See the move-in check' }));
     actions.push(el('a', { href: `#/deals/${deal.id}/lease`, class: 'button button--quiet', text: 'Read the signed lease' }));
   }
@@ -209,6 +272,7 @@ export async function renderDeal({ session, route }) {
   }
 
   const plan = deal.deposit_parts > 1 && deal.sent_at ? await planCard(deal, owner, message) : null;
+  const reviews = deal.keys_at ? await reviewCard(deal) : null;
 
   return [
     topBar({ profile, session }),
@@ -220,6 +284,7 @@ export async function renderDeal({ session, route }) {
     ...actions,
     list,
     ...(plan ? [plan] : []),
+    ...(reviews ? [reviews] : []),
     el('p', { class: 'note', text: owner
       ? 'Never hand over keys before the lease and the move-in check are signed in the app.'
       : 'Pay only through Street Safe, after the lease is signed. Street Property will never ask you to pay into a personal account.' }),
@@ -513,6 +578,101 @@ export async function renderDealCheck({ session, route }) {
     rooms,
     message.node,
     ...footer,
+    tabBar('enquiries'),
+  ];
+}
+
+// The rent record ---------------------------------------------------------------------
+
+const RENT_CHIPS = {
+  paid: ['chip--good', 'Paid'],
+  paying: ['chip--waiting', 'Paying'],
+  late: ['chip--bad', 'Late'],
+  due: ['chip--waiting', 'Due'],
+  later: ['', 'Later'],
+};
+
+export async function renderDealRent({ session, route }) {
+  const { profile, deal } = await load(session, route);
+  if (!deal) return notFound(profile, session);
+  const owner = deal.my_side === 'owner';
+  const back = el('a', { href: `#/deals/${deal.id}`, class: 'text-link', text: '← The deal' });
+  if (deal.status !== 'moved_in') {
+    return [topBar({ profile, session }), back, el('h1', { class: 'title title--medium', text: 'Rent record' }),
+      el('p', { class: 'lead', text: 'The rent record starts when the renter confirms the keys.' }), tabBar('enquiries')];
+  }
+  const lines = await rentRecord(deal.id);
+  const today = todayInSouthAfrica();
+  const payable = owner ? null : rentToPay(lines, today);
+  const message = messageBox();
+  const paidCount = lines.filter((l) => l.state === 'paid').length;
+
+  const rows = lines.map((line) => {
+    const status = rentStatus(line, today);
+    const [chip, label] = RENT_CHIPS[status];
+    const detail = line.state === 'paid'
+      ? `Paid ${when(line.paid_at)}${line.method === 'street_safe' ? ' through Street Safe' : ', confirmed by the owner'}${line.note ? ` · ${line.note}` : ''}`
+      : `Due ${longDate(line.due_date)}`;
+    const row = el('li', { class: 'plan-row' }, [
+      el('span', { class: 'plan-row__what', text: `${monthWords(line.due_date)} · ${formatRands(line.amount_rands)}` }),
+      el('span', { class: `chip ${chip}`, text: label }),
+      el('span', { class: 'plan-row__when rent-row__detail', text: detail }),
+    ]);
+    if (payable && payable.month_no === line.month_no) {
+      if (deal.owner_can_receive) {
+        const pay = el('button', { type: 'button', class: 'button button--primary', text: status === 'paying' ? 'Finish paying' : `Pay ${formatRands(line.amount_rands)} through Street Safe` });
+        pay.addEventListener('click', () => whileBusy(pay, 'Opening TradeSafe…', async () => {
+          message.clear();
+          try {
+            const answer = await streetSafe('pay_rent', { deal: deal.id, month: line.month_no });
+            if (answer?.waiting) {
+              message.show('Street Safe payments are not switched on yet. Pay the owner as agreed and ask them to mark it received.');
+              return;
+            }
+            window.location.assign(answer.url);
+          } catch (problem) {
+            message.show(friendlyListingError(problem));
+          }
+        }));
+        row.append(pay);
+      }
+    }
+    if (owner && line.state === 'due' && status !== 'later') {
+      const mark = el('button', { type: 'button', class: 'button button--quiet', text: 'Mark received' });
+      const note = el('input', { class: 'input', placeholder: 'How it was paid (optional), e.g. EFT', maxlength: '200', 'aria-label': `How the rent for ${monthWords(line.due_date)} was paid` });
+      mark.addEventListener('click', () => whileBusy(mark, 'Saving…', async () => {
+        message.clear();
+        try {
+          await markRentReceived(deal.id, line.month_no, note.value.trim());
+          reload();
+        } catch (problem) {
+          message.show(friendlyListingError(problem));
+        }
+      }));
+      row.append(note, mark);
+    }
+    return row;
+  });
+
+  // Payments on their way: ask TradeSafe once when the record opens.
+  if (lines.some((l) => l.state === 'waiting') && !synced.has(`rent:${deal.id}`)) {
+    synced.add(`rent:${deal.id}`);
+    streetSafe('sync', { deal: deal.id })
+      .then((answer) => { if (Object.values(answer?.rent ?? {}).includes('paid')) reload(); })
+      .catch(() => {});
+  }
+
+  return [
+    topBar({ profile, session }),
+    back,
+    el('p', { class: 'eyebrow', text: 'Rent record' }),
+    el('h1', { class: 'title title--medium', text: placeTitle(deal) }),
+    el('p', { class: 'lead', text: `${paidCount} of ${lines.length} months paid · ${formatRands(deal.rent_rands)} a month` }),
+    ...(owner
+      ? [el('p', { class: 'note', text: 'Rent paid through Street Safe is marked here by itself. If the renter pays you another way, tap Mark received: it is the written receipt the lease promises.' })]
+      : [el('p', { class: 'note', text: 'You get a reminder 3 days before rent is due and on the day. Every paid month here is your receipt.' })]),
+    el('ol', { class: 'plan-list' }, rows),
+    message.node,
     tabBar('enquiries'),
   ];
 }
