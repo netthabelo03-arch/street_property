@@ -328,8 +328,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 /* The deal (Sprint 8) --------------------------------------------------------- */
 .check-card--now { border-color: var(--color-warning); }
 .check-card--now .check-card__n { background: var(--color-warning); color: #1a1a1a; }
-.check-card--next, .check-card--coming { opacity: 0.75; }
-.check-card--coming .check-card__title::after { content: ' · Sprint 9'; font-weight: 400; color: var(--color-text-muted); font-size: 13px; }
+.check-card--next { opacity: 0.75; }
 .chip:empty { display: none; }
 .note--warning { background: var(--color-warning-bg); color: var(--color-warning); }
 .lease-terms { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 16px; border-radius: var(--radius-card); background: var(--color-surface-raised); }

@@ -34,6 +34,7 @@ export function renderPrivacy() {
     'Video tours save where each clip was filmed. Only the owner and our checkers can see that.',
     'For Street Verified, your ID photo, selfie and ownership documents are seen only by our checkers. They are deleted as soon as the check is decided; we keep only the result (approved or not, and why).',
     'For the renter check, your payslips or bank statements are seen only by our checkers and deleted as soon as the check is done. We keep only your monthly take-home pay, for 3 months. Owners never see it: only how many times it covers their rent, and only if you share your check with them.',
+    'Street Safe payments are handled by TradeSafe, a registered South African escrow service. Renters pay on TradeSafe\u2019s own page; we never see card or bank details. Owners\u2019 bank account and ID numbers are passed straight to TradeSafe so it can pay them; we keep only the bank, the account type and the last 4 digits.',
     'We email you about messages, viewings and checks through our email provider. You can turn these emails off in your Profile.',
     'Responsible party and Information Officer: [to be named]',
     'Details: [to be written]',

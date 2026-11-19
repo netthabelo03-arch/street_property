@@ -4,10 +4,10 @@
 
 import { loadViewer } from '../viewer.js';
 import {
-  getDeal, sendLease, signLease, cancelDeal, inspection, addRoomPhoto, setRoomNote, signInspection, confirmKeys,
+  getDeal, sendLease, signLease, cancelDeal, inspection, addRoomPhoto, setRoomNote, signInspection, confirmKeys, streetSafe,
 } from '../deals/api.js';
 import {
-  dealSteps, nextAction, checkLeaseTerms, checkSignatureName, roomName, roomProgress, photoStamp,
+  dealSteps, nextAction, checkLeaseTerms, checkSignatureName, roomName, roomProgress, photoStamp, safeTotal,
   leaseFingerprint, shortFingerprint, LEASE_MONTHS, SPECIAL_TERMS_MAX, ROOM_NOTE_MAX, ROOM_PHOTOS_MAX,
 } from '../deals/rules.js';
 import { formatRands, listingTitle } from '../listings/rules.js';
@@ -49,7 +49,15 @@ const STEP_LINES = {
   verified: (d) => (d.listing_verified ? 'Owner, address and filming checked by Street Property.' : 'This listing is not Street Verified. Take extra care that the owner is real.'),
   met: (d) => (d.met_both ? 'You both tapped "We met" at the address.' : 'Not confirmed in the app. Never sign for a place you have not seen in person.'),
   renter: () => 'ID and income checked, and the owner said yes.',
-  deposit: () => 'Coming soon: Street Safe will hold the deposit until the move-in check is signed. For now, pay only into a bank account in the owner’s or agency’s name, after signing.',
+  deposit: (d) => {
+    const total = formatRands(safeTotal(d));
+    if (d.safe_state === 'paid') return `${total} held by TradeSafe since ${when(d.safe_paid_at)}. Paid to the owner when the renter confirms the keys.`;
+    if (d.safe_state === 'released') return `${total} paid to the owner on ${when(d.safe_released_at)}.`;
+    if (d.safe_state === 'refunded') return `${total} refunded to the renter.`;
+    if (d.safe_state === 'waiting') return 'Payment started. It shows here once TradeSafe has received it (card and Ozow at once, EFT up to 36 hours).';
+    if (['moved_in', 'cancelled'].includes(d.status)) return 'Not paid through Street Safe.';
+    return `After signing, the renter pays ${total} (first month’s rent and deposit) into TradeSafe, a registered escrow service. The owner is paid when the renter has the keys; if the deal is called off, the renter gets it back.`;
+  },
   lease: (d) => (d.status === 'signed' || d.status === 'moved_in' ? `Signed by both on ${when(d.renter_signed_at > d.owner_signed_at ? d.renter_signed_at : d.owner_signed_at)}.` : 'A standard lease, filled in by the owner and signed by both in the app.'),
   check: (d) => (d.owner_checked_at && d.renter_checked_at ? 'Every room photographed and signed by both.' : 'Walk through together and photograph every room. It protects the deposit for both of you.'),
   keys: (d) => (d.keys_at ? `Confirmed by the renter on ${when(d.keys_at)}.` : 'The renter confirms in the app once the keys are in hand.'),
@@ -59,13 +67,26 @@ const STATE_CHIPS = {
   done: ['chip--good', 'Done'],
   now: ['chip--waiting', 'Now'],
   next: ['', 'Next'],
-  coming: ['', 'Coming soon'],
   skipped: ['chip--bad', 'Not done'],
 };
+
+// Money waiting to move (paid but keys confirmed or deal called off, or a
+// payment not yet seen): ask TradeSafe once when the deal is opened.
+const synced = new Set();
+function needsSync(deal) {
+  if (deal.safe_state === 'waiting') return true;
+  return deal.safe_state === 'paid' && ['moved_in', 'cancelled'].includes(deal.status);
+}
 
 export async function renderDeal({ session, route }) {
   const { profile, deal } = await load(session, route);
   if (!deal) return notFound(profile, session);
+  if (needsSync(deal) && !synced.has(deal.id)) {
+    synced.add(deal.id);
+    streetSafe('sync', { deal: deal.id })
+      .then((answer) => { if (answer?.state && answer.state !== deal.safe_state) reload(); })
+      .catch(() => {});
+  }
   const owner = deal.my_side === 'owner';
   const message = messageBox();
   const steps = dealSteps(deal);
@@ -85,6 +106,27 @@ export async function renderDeal({ session, route }) {
   }));
 
   const actions = [];
+  if (deal.status === 'signed' && ['none', 'waiting'].includes(deal.safe_state)) {
+    if (!owner && deal.owner_can_receive) {
+      const payButton = el('button', { type: 'button', class: 'button button--primary', text: deal.safe_state === 'waiting' ? 'Finish paying into Street Safe' : `Pay ${formatRands(safeTotal(deal))} into Street Safe` });
+      payButton.addEventListener('click', () => whileBusy(payButton, 'Opening TradeSafe…', async () => {
+        message.clear();
+        try {
+          const answer = await streetSafe('pay', { deal: deal.id });
+          if (answer?.waiting) {
+            message.show('Street Safe payments are not switched on yet. Do not pay the owner directly until they are.');
+            return;
+          }
+          window.location.assign(answer.url);
+        } catch (problem) {
+          message.show(friendlyListingError(problem));
+        }
+      }));
+      actions.push(payButton, el('p', { class: 'field__hint', text: 'You pay on TradeSafe’s secure page by card, Ozow or EFT. Street Property never sees your card or bank details.' }));
+    } else if (owner && !deal.owner_can_receive) {
+      actions.push(el('a', { href: '#/payouts', class: 'button button--primary', text: 'Set up Street Safe payouts' }));
+    }
+  }
   if (deal.status === 'agreeing' || deal.status === 'signing') {
     actions.push(el('a', { href: `#/deals/${deal.id}/lease`, class: 'button button--primary', text: owner && deal.status === 'agreeing' ? 'Fill in the lease' : 'Open the lease' }));
   } else if (deal.status === 'signed') {
@@ -102,6 +144,7 @@ export async function renderDeal({ session, route }) {
       message.clear();
       try {
         await cancelDeal(deal.id);
+        if (deal.safe_state === 'paid' || deal.safe_state === 'waiting') await streetSafe('sync', { deal: deal.id }).catch(() => {});
         reload();
       } catch (problem) {
         message.show(friendlyListingError(problem));
@@ -127,7 +170,7 @@ export async function renderDeal({ session, route }) {
     list,
     el('p', { class: 'note', text: owner
       ? 'Never hand over keys before the lease and the move-in check are signed in the app.'
-      : 'Never pay a deposit or rent before the lease is signed. Street Property will never ask you to pay into a personal account.' }),
+      : 'Pay only through Street Safe, after the lease is signed. Street Property will never ask you to pay into a personal account.' }),
     message.node,
     ...(cancel ? [cancel] : []),
     tabBar('enquiries'),
@@ -374,6 +417,7 @@ export async function renderDealCheck({ session, route }) {
       message.clear();
       try {
         await confirmKeys(deal.id);
+        if (deal.safe_state === 'paid') await streetSafe('sync', { deal: deal.id }).catch(() => {});
         window.location.hash = `#/deals/${deal.id}`;
       } catch (problem) {
         message.show(friendlyListingError(problem));

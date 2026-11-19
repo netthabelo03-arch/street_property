@@ -35,15 +35,19 @@ test('S8: deal, lease and move-in check screens need an account and sit under En
   assert.equal(parseRoute(`#/deals/${ID}/other`).screen, 'explore');
 });
 
-test('S8: the deal has seven steps; the deposit is coming in Sprint 9', () => {
-  const steps = dealSteps(base);
-  assert.deepEqual(steps.map((s) => s.id), ['verified', 'met', 'renter', 'deposit', 'lease', 'check', 'keys']);
-  assert.deepEqual(steps.map((s) => s.state), ['done', 'done', 'done', 'coming', 'now', 'next', 'next']);
-  const later = dealSteps({ ...base, status: 'signed', owner_checked_at: 'x', renter_checked_at: 'y', listing_verified: false, met_both: false });
-  assert.deepEqual(later.map((s) => s.state), ['skipped', 'skipped', 'done', 'coming', 'done', 'done', 'now']);
-  const done = dealSteps({ ...base, status: 'moved_in', owner_checked_at: 'x', renter_checked_at: 'y', keys_at: 'z' });
-  assert.ok(done.filter((s) => s.id !== 'deposit').every((s) => s.state === 'done'));
-  assert.ok(dealSteps({ ...base, status: 'cancelled' }).every((s) => s.state !== 'now'));
+test('S8/S9: the deal has seven steps in the order they happen', () => {
+  const none = { ...base, safe_state: 'none' };
+  const steps = dealSteps(none);
+  assert.deepEqual(steps.map((s) => s.id), ['verified', 'met', 'renter', 'lease', 'deposit', 'check', 'keys']);
+  assert.deepEqual(steps.map((s) => s.state), ['done', 'done', 'done', 'now', 'next', 'next', 'next']);
+  const signed = dealSteps({ ...none, status: 'signed', listing_verified: false, met_both: false });
+  assert.deepEqual(signed.map((s) => s.state), ['skipped', 'skipped', 'done', 'done', 'now', 'next', 'next']);
+  const paid = dealSteps({ ...none, status: 'signed', safe_state: 'paid', owner_checked_at: 'x', renter_checked_at: 'y' });
+  assert.deepEqual(paid.map((s) => s.state), ['done', 'done', 'done', 'done', 'done', 'done', 'now']);
+  const unpaid = dealSteps({ ...none, status: 'moved_in', owner_checked_at: 'x', renter_checked_at: 'y', keys_at: 'z' });
+  assert.equal(unpaid.find((s) => s.id === 'deposit').state, 'skipped');
+  assert.ok(unpaid.filter((s) => s.id !== 'deposit').every((s) => s.state === 'done'));
+  assert.ok(dealSteps({ ...none, status: 'cancelled' }).every((s) => s.state !== 'now'));
 });
 
 test('S8: each side is told what to do next', () => {
@@ -51,9 +55,13 @@ test('S8: each side is told what to do next', () => {
   assert.match(nextAction(base), /Waiting for Thabo to send the lease/);
   assert.match(nextAction({ ...base, status: 'signing' }), /Read the lease and sign/);
   assert.match(nextAction({ ...base, status: 'signing', renter_signed_at: 'x' }), /Waiting for Thabo to sign/);
-  assert.match(nextAction({ ...base, status: 'signed' }), /photograph every room/);
-  assert.match(nextAction({ ...base, status: 'signed', renter_checked_at: 'x' }), /Waiting for Thabo to sign the move-in check/);
-  assert.match(nextAction({ ...base, status: 'signed', renter_checked_at: 'x', owner_checked_at: 'y' }), /Got the keys/);
+  assert.match(nextAction({ ...base, status: 'signed', safe_state: 'none', owner_can_receive: true }), /Pay the first month/);
+  assert.match(nextAction({ ...base, status: 'signed', safe_state: 'none', owner_can_receive: false }), /Waiting for Thabo to set up Street Safe payouts/);
+  assert.match(nextAction({ ...base, my_side: 'owner', status: 'signed', safe_state: 'none', owner_can_receive: false }), /Set up Street Safe payouts/);
+  assert.match(nextAction({ ...base, status: 'signed', safe_state: 'waiting' }), /on its way/);
+  assert.match(nextAction({ ...base, status: 'signed', safe_state: 'paid' }), /photograph every room/);
+  assert.match(nextAction({ ...base, status: 'signed', safe_state: 'paid', renter_checked_at: 'x' }), /Waiting for Thabo to sign the move-in check/);
+  assert.match(nextAction({ ...base, status: 'signed', safe_state: 'paid', renter_checked_at: 'x', owner_checked_at: 'y' }), /Got the keys/);
   assert.match(nextAction({ ...base, status: 'moved_in' }), /Welcome home/);
   assert.match(nextAction({ ...base, status: 'cancelled' }), /called off/);
 });

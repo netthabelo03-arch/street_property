@@ -25,6 +25,7 @@
 //   #/deals/<id>             a Street Safe deal: the steps from yes to keys
 //   #/deals/<id>/lease       the lease: terms, reading and signing
 //   #/deals/<id>/check       the move-in check, room by room
+//   #/payouts                the bank account Street Safe pays an owner into
 //   #/renter-check           your own renter check
 //   #/review/reports         an admin's open reports
 //   #/place/<id>             a live listing (anyone)
@@ -34,10 +35,10 @@ import { isUuid } from './listings/rules.js';
 const EXPLORE = { screen: 'explore' };
 
 /** Screens whose address is just their name, like "#/signin". */
-const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters', 'map', 'enquiries', 'saved', 'tours', 'renter-check'];
+const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters', 'map', 'enquiries', 'saved', 'tours', 'renter-check', 'payouts'];
 
 /** Screens that only a signed-in person may open. */
-export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing', 'enquiries', 'enquiry', 'saved', 'list-verify', 'review-check', 'renter-check', 'enquiry-check', 'review-reports', 'deal', 'deal-lease', 'deal-check'];
+export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing', 'enquiries', 'enquiry', 'saved', 'list-verify', 'review-check', 'renter-check', 'enquiry-check', 'review-reports', 'deal', 'deal-lease', 'deal-check', 'payouts'];
 
 /** Screens that make no sense once signed in. */
 export const GUEST_SCREENS = ['signup', 'signin', 'forgot'];
@@ -121,6 +122,6 @@ export function tabFor(screen) {
   if (screen === 'map') return 'map';
   if (screen === 'saved') return 'saved';
   if (['enquiries', 'enquiry', 'enquiry-check', 'deal', 'deal-lease', 'deal-check'].includes(screen)) return 'enquiries';
-  if (['profile', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'list-verify', 'review', 'review-listing', 'review-check', 'review-reports', 'renter-check'].includes(screen)) return 'profile';
+  if (['profile', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'list-verify', 'review', 'review-listing', 'review-check', 'review-reports', 'renter-check', 'payouts'].includes(screen)) return 'profile';
   return 'explore';
 }

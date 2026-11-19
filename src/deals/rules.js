@@ -32,26 +32,36 @@ export function roomProgress(rooms, photos) {
 }
 
 /**
- * The seven steps of the deal, each 'done', 'now', 'next' or 'coming'.
+ * The seven steps of the deal, in the order they happen, each 'done', 'now',
+ * 'next' or 'skipped' (an optional step that was passed by).
  * @param {object} deal a row from deal_view
  */
 export function dealSteps(deal) {
   const signed = ['signed', 'moved_in'].includes(deal.status);
   const checked = Boolean(deal.owner_checked_at && deal.renter_checked_at);
+  const paid = ['paid', 'released'].includes(deal.safe_state);
+  const over = ['moved_in', 'cancelled'].includes(deal.status) || deal.safe_state === 'refunded';
   const steps = [
     { id: 'verified', title: 'Listing is Street Verified', done: Boolean(deal.listing_verified), optional: true },
     { id: 'met', title: 'Viewing done in person', done: Boolean(deal.met_both), optional: true },
     { id: 'renter', title: 'Renter checked', done: true },
-    { id: 'deposit', title: 'Deposit held by Street Safe', coming: true },
     { id: 'lease', title: 'Lease signed in the app', done: signed },
+    { id: 'deposit', title: 'Rent and deposit held by Street Safe', done: paid, payment: true },
     { id: 'check', title: 'Move-in check together', done: checked },
     { id: 'keys', title: 'Keys handed over', done: Boolean(deal.keys_at) },
   ];
   let nowGiven = deal.status === 'cancelled';
   return steps.map((step) => {
-    if (step.coming) return { ...step, state: 'coming' };
     if (step.done) return { ...step, state: 'done' };
     if (step.optional) return { ...step, state: 'skipped' };
+    if (step.payment) {
+      if (over) return { ...step, state: 'skipped' };
+      if (signed && !nowGiven) {
+        nowGiven = true;
+        return { ...step, state: 'now' };
+      }
+      return { ...step, state: 'next' };
+    }
     if (!nowGiven) {
       nowGiven = true;
       return { ...step, state: 'now' };
@@ -71,12 +81,77 @@ export function nextAction(deal) {
     const mine = owner ? deal.owner_signed_at : deal.renter_signed_at;
     return mine ? `Waiting for ${other} to sign the lease.` : 'Read the lease and sign it.';
   }
+  if (deal.safe_state === 'none' || deal.safe_state === 'waiting') {
+    if (owner) return deal.owner_can_receive ? `${other} can now pay the rent and deposit into Street Safe.` : `Set up Street Safe payouts so ${other} can pay safely.`;
+    if (deal.safe_state === 'waiting') return 'Your payment is on its way. It can take up to 36 hours by EFT.';
+    return deal.owner_can_receive ? 'Pay the first month\u2019s rent and the deposit into Street Safe.' : `Waiting for ${other} to set up Street Safe payouts.`;
+  }
   const mineChecked = owner ? deal.owner_checked_at : deal.renter_checked_at;
   const theirsChecked = owner ? deal.renter_checked_at : deal.owner_checked_at;
   if (!mineChecked || !theirsChecked) {
     return mineChecked ? `Waiting for ${other} to sign the move-in check.` : 'Walk through the place together and photograph every room.';
   }
   return owner ? `Waiting for ${other} to confirm they have the keys.` : 'Got the keys? Confirm it here.';
+}
+
+/** The total going into Street Safe: the first month's rent and the deposit. */
+export function safeTotal(deal) {
+  const rent = Number(deal.safe_rent_rands ?? deal.rent_rands ?? 0);
+  const deposit = Number(deal.safe_deposit_rands ?? deal.deposit_rands ?? 0);
+  return rent + deposit;
+}
+
+// Payouts --------------------------------------------------------------------------
+
+export const PAYOUT_BANKS = [
+  { id: 'absa', name: 'Absa' },
+  { id: 'african', name: 'African Bank' },
+  { id: 'capitec', name: 'Capitec' },
+  { id: 'discovery', name: 'Discovery Bank' },
+  { id: 'fnb', name: 'FNB' },
+  { id: 'investec', name: 'Investec' },
+  { id: 'nedbank', name: 'Nedbank' },
+  { id: 'standard', name: 'Standard Bank' },
+  { id: 'tyme', name: 'TymeBank' },
+];
+export const ACCOUNT_TYPES = [
+  { id: 'cheque', name: 'Cheque or current' },
+  { id: 'savings', name: 'Savings' },
+  { id: 'transmission', name: 'Transmission' },
+];
+
+/** A South African ID number: 13 digits with a valid check digit (Luhn). */
+export function validIdNumber(text) {
+  const digits = String(text ?? '').replace(/\s/g, '');
+  if (!/^\d{13}$/.test(digits)) return false;
+  let sum = 0;
+  for (let i = 0; i < 13; i += 1) {
+    let n = Number(digits[12 - i]);
+    if (i % 2 === 1) {
+      n *= 2;
+      if (n > 9) n -= 9;
+    }
+    sum += n;
+  }
+  return sum % 10 === 0;
+}
+
+/** The same checks the Edge Function makes, before anything is sent. */
+export function checkPayout({ bank, accountType, accountNumber, idNumber }) {
+  const errors = {};
+  if (!PAYOUT_BANKS.some((b) => b.id === bank)) errors.bank = 'Choose your bank.';
+  if (!ACCOUNT_TYPES.some((t) => t.id === accountType)) errors.accountType = 'Choose the account type.';
+  if (!/^\d{6,16}$/.test(String(accountNumber ?? '').replace(/\s/g, ''))) errors.accountNumber = 'Check the account number: digits only.';
+  if (!validIdNumber(idNumber)) errors.idNumber = 'Enter your 13-digit South African ID number.';
+  return errors;
+}
+
+/** "FNB cheque account ending 4417" */
+export function payoutLine(account) {
+  if (!account?.can_receive) return null;
+  const bank = PAYOUT_BANKS.find((b) => b.id === account.bank)?.name ?? account.bank;
+  const type = ACCOUNT_TYPES.find((t) => t.id === account.account_type)?.name.toLowerCase() ?? 'bank';
+  return `${bank} ${type} account ending ${account.account_last4}`;
 }
 
 /** The same checks the database makes before the lease is sent. */

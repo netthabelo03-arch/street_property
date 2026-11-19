@@ -27,6 +27,7 @@ import { renderConversation } from './screens/conversation.js';
 import { renderTours } from './screens/tours.js';
 import { renderSaved } from './screens/saved.js';
 import { renderDeal, renderDealLease, renderDealCheck } from './screens/deal.js';
+import { renderPayouts } from './screens/payouts.js';
 import { forgetViewer } from './viewer.js';
 
 const SCREENS = {
@@ -60,6 +61,7 @@ const SCREENS = {
   deal: renderDeal,
   'deal-lease': renderDealLease,
   'deal-check': renderDealCheck,
+  payouts: renderPayouts,
 };
 
 const root = document.getElementById('app');

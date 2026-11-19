@@ -112,3 +112,31 @@ export async function confirmKeys(id) {
   const client = await getClient();
   check(await client.rpc('confirm_keys', { p_deal: id }));
 }
+
+// Street Safe (TradeSafe) -------------------------------------------------------
+
+/**
+ * Call the street-safe Edge Function. Returns its answer, { waiting: true }
+ * when payments are not switched on yet, or throws { hint } for a problem.
+ */
+export async function streetSafe(action, body = {}) {
+  const client = await getClient();
+  const { data, error } = await client.functions.invoke('street-safe', { body: { action, ...body } });
+  if (error) {
+    let code = 'street_safe_down';
+    try {
+      const answer = await error.context.json();
+      if (answer?.error) code = answer.error;
+    } catch {
+      // keep the general problem
+    }
+    throw { hint: code };
+  }
+  return data;
+}
+
+/** The caller's payout account: bank, type and last 4 digits only. */
+export async function myPayoutAccount(userId) {
+  const client = await getClient();
+  return check(await client.from('safe_accounts').select('bank, account_last4, account_type, can_receive, updated_at').eq('user_id', userId).maybeSingle());
+}

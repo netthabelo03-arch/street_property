@@ -75,6 +75,18 @@ const BY_HINT = {
   note_too_long: 'Keep the note under 500 characters.',
   rooms_missing: 'Add at least one photo of every room first.',
   check_first: 'Sign the move-in check together first.',
+  // Street Safe payments (Sprint 9)
+  street_safe_down: 'Street Safe payments are not answering right now. Try again in a few minutes.',
+  pay_after_lease: 'Pay once you have both signed the lease.',
+  already_paid: 'This has already been paid.',
+  owner_not_ready: 'The owner has not set up Street Safe payouts yet.',
+  name_needed: 'Add your full name (first name and surname) in your Profile first.',
+  phone_needed: 'Add your cellphone number in your Profile first.',
+  bank_needed: 'Choose your bank.',
+  account_type_needed: 'Choose the account type.',
+  account_number: 'Check the account number: digits only.',
+  id_number: 'Enter your 13-digit South African ID number.',
+  sign_in: 'Log in again, then try once more.',
 };
 
 // Problems from the phone itself (photos, camera, location).
