@@ -5,6 +5,8 @@
 import { loadViewer } from '../viewer.js';
 import { reviewQueue, getListing, listPhotos, listClips, reviewListing } from '../listings/api.js';
 import { verificationQueue, docLinks, decideCheck } from '../verify/api.js';
+import { decideIncome } from '../renter/api.js';
+import { parseRands } from '../listings/rules.js';
 import { FEATURES, listingTitle, priceLine, tourRooms, formatSeconds, formatRands, findKind, clipDistances, missingForReview, formatDistance } from '../listings/rules.js';
 import { friendlyListingError } from '../listings/errors.js';
 import { topBar, tabBar } from '../shell.js';
@@ -33,17 +35,17 @@ export async function renderReviewQueue({ session }) {
   const checkRows = checks.map((item) => el('li', {}, [
     el('a', { class: 'listing-row', href: `#/review/check/${item.kind}/${item.subject_id}` }, [
       el('div', { class: 'listing-row__top' }, [
-        el('p', { class: 'listing-row__title', text: item.kind === 'identity' ? `ID: ${item.person_name}` : `Ownership: ${item.street}, ${item.area}` }),
+        el('p', { class: 'listing-row__title', text: item.kind === 'identity' ? `ID: ${item.person_name}` : item.kind === 'income' ? `Income: ${item.person_name}` : `Ownership: ${item.street}, ${item.area}` }),
         el('span', { class: 'chip chip--waiting', text: 'Waiting' }),
       ]),
-      el('p', { class: 'listing-row__about', text: `${item.kind === 'identity' ? 'ID photo and selfie' : item.lister === 'agent' ? `Agent ${item.person_name}: FFC and mandate` : `Owner ${item.person_name}: deed or rates account`} · sent ${when(item.submitted_at)}` }),
+      el('p', { class: 'listing-row__about', text: `${item.kind === 'identity' ? 'ID photo and selfie' : item.kind === 'income' ? 'Payslips or bank statements (renter check)' : item.lister === 'agent' ? `Agent ${item.person_name}: FFC and mandate` : `Owner ${item.person_name}: deed or rates account`} · sent ${when(item.submitted_at)}` }),
     ]),
   ]));
   return [
     bar,
     el('h1', { class: 'title', text: 'Review queue' }),
     el('section', { class: 'section' }, [
-      el('h2', { class: 'section__title', text: `Street Verified checks (${checks.length})` }),
+      el('h2', { class: 'section__title', text: `ID, ownership and income checks (${checks.length})` }),
       ...(checks.length ? [el('ul', { class: 'listing-list' }, checkRows)] : [el('p', { class: 'lead', text: 'No ID or ownership checks waiting.' })]),
     ]),
     el('h2', { class: 'section__title', text: `Listings (${waiting.length})` }),
@@ -193,7 +195,8 @@ export async function renderReviewCheck({ session, navigate, route }) {
   }
   const docs = await docLinks(item.paths);
   const identity = item.kind === 'identity';
-  const labels = identity ? ['ID or passport', 'Selfie'] : item.lister === 'agent' ? ['Fidelity Fund Certificate', 'Owner\u2019s mandate', 'More'] : ['Deed or rates account', 'More'];
+  const income = item.kind === 'income';
+  const labels = identity ? ['ID or passport', 'Selfie'] : income ? ['Payslip or statement'] : item.lister === 'agent' ? ['Fidelity Fund Certificate', 'Owner\u2019s mandate', 'More'] : ['Deed or rates account', 'More'];
   const message = messageBox();
 
   const shown = el('ul', { class: 'doc-list' }, docs.map((doc, n) => el('li', { class: 'stack stack--tight' }, [
@@ -205,11 +208,14 @@ export async function renderReviewCheck({ session, navigate, route }) {
 
   const checklist = identity
     ? ['The ID or passport is real and readable.', 'The face in the selfie matches the ID photo.', 'The name matches the name on the account.']
-    : item.lister === 'agent'
+    : income
+      ? ['The documents are in this person\u2019s name and from the last 3 months.', 'They look untouched (fonts, totals and dates match).', 'Write down the monthly take-home pay (after tax and deductions, or the average salary paid in).']
+      : item.lister === 'agent'
       ? ['The Fidelity Fund Certificate is current (check it on the PPRA website).', 'The mandate names this address and is signed by the owner.', 'The agent\u2019s name matches their ID.']
       : ['The deed or rates account shows this address.', 'It is in the name of the person on the ID.', 'The rates account is recent (last 3 months).'];
 
   const note = el('textarea', { id: 'check-note', class: 'input input--area', rows: '3', maxlength: '500' });
+  const pay = el('input', { id: 'take-home', class: 'input', inputmode: 'numeric', placeholder: 'For example 14 000' });
   const approve = el('button', { type: 'button', class: 'button button--primary', text: 'Approve' });
   const reject = el('button', { type: 'button', class: 'button button--danger', text: 'Not accepted' });
   async function decide(button, ok) {
@@ -219,9 +225,16 @@ export async function renderReviewCheck({ session, navigate, route }) {
       note.focus();
       return;
     }
+    const monthly = parseRands(pay.value);
+    if (income && ok && (!monthly || monthly < 1)) {
+      message.show('Enter the monthly take-home pay in rands.');
+      pay.focus();
+      return;
+    }
     await whileBusy(button, ok ? 'Approving…' : 'Sending…', async () => {
       try {
-        await decideCheck(item.kind, item.subject_id, ok, note.value.trim());
+        if (income) await decideIncome(item.subject_id, ok, monthly, note.value.trim());
+        else await decideCheck(item.kind, item.subject_id, ok, note.value.trim());
         navigate('#/review');
       } catch (error) {
         message.show(error?.code === 'docs_not_deleted' ? error.message : friendlyListingError(error));
@@ -234,8 +247,8 @@ export async function renderReviewCheck({ session, navigate, route }) {
   return [
     bar,
     el('a', { href: '#/review', class: 'text-link', text: '\u2190 Review queue' }),
-    el('h1', { class: 'title title--medium', text: identity ? `ID check: ${item.person_name}` : 'Ownership check' }),
-    ...(identity ? [] : [el('ul', { class: 'plain-list' }, [
+    el('h1', { class: 'title title--medium', text: identity ? `ID check: ${item.person_name}` : income ? `Income check: ${item.person_name}` : 'Ownership check' }),
+    ...(identity || income ? [] : [el('ul', { class: 'plain-list' }, [
       `${item.street}, ${item.area}, ${item.city}`,
       `${item.lister === 'agent' ? 'Agent' : 'Owner'}: ${item.person_name}`,
     ].map((line) => el('li', { text: line })))]),
@@ -244,6 +257,7 @@ export async function renderReviewCheck({ session, navigate, route }) {
     el('section', { class: 'section' }, [
       el('h2', { class: 'section__title', text: 'Check' }),
       el('ul', { class: 'plain-list' }, checklist.map((line) => el('li', { text: line }))),
+      ...(income ? [el('div', { class: 'field' }, [el('label', { for: 'take-home', class: 'field__label', text: 'Monthly take-home pay (R), needed to approve' }), pay, el('p', { class: 'field__hint', text: 'Owners never see this amount, only how many times it covers their rent.' })])] : []),
       el('div', { class: 'field' }, [el('label', { for: 'check-note', class: 'field__label', text: 'Note to the person (needed when not accepted)' }), note]),
       message.node,
       approve,

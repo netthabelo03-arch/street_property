@@ -15,7 +15,7 @@ import { notFound } from './listing-parts.js';
 const BADGE = '<path d="M12 3l8 3v6c0 5-3.5 8.5-8 9.5C7.5 20.5 4 17 4 12V6z"></path><path d="M8.5 12l2.5 2.5 4.5-5"></path>';
 
 /** A labelled file picker that remembers the chosen file. */
-function picker({ id, label, capture }) {
+export function picker({ id, label, capture }) {
   // The ID and selfie are photos taken now; documents can also be PDFs.
   const input = el('input', { type: 'file', id, class: 'file__input', accept: capture ? 'image/*' : 'image/*,application/pdf' });
   if (capture) input.setAttribute('capture', capture);

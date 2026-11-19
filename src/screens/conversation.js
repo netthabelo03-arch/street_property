@@ -11,6 +11,8 @@ import {
   shortTime, enquiryTitle, enquiryPrice, looksRisky, whatsappLink, showPhone,
 } from '../enquiries/rules.js';
 import { friendlyListingError } from '../listings/errors.js';
+import { renterCheckFor, myRenterCheck, shareRenterCheck, stopSharing } from '../renter/api.js';
+import { coverLine, checkShare, LEASE_CHOICES, HOUSEHOLD_MAX } from '../renter/rules.js';
 import { topBar, tabBar, refreshUnread } from '../shell.js';
 import { el, messageBox, whileBusy } from '../dom.js';
 
@@ -35,6 +37,136 @@ export async function renderConversation({ session, route }) {
   const head = el('a', { class: 'convo-place', href: `#/place/${item.listing_id}` });
   const viewing = el('section', { class: 'viewing-panel', 'aria-label': 'Viewing' });
   const list = el('ol', { class: 'bubbles', 'aria-live': 'polite' });
+  const renter = el('section', { class: 'renter-panel', 'aria-label': 'Renter check' });
+
+  // The renter check: the renter shares it here; the owner opens it from here.
+  async function drawRenter() {
+    let check = null;
+    try {
+      check = await renterCheckFor(item.id);
+    } catch {
+      check = null;
+    }
+    const title = el('h2', { class: 'section__title', text: 'Renter check' });
+    if (item.my_side === 'owner') {
+      if (!check) {
+        renter.replaceChildren(title, el('p', { class: 'field__hint', text: `${item.other_name} has not shared a renter check. You can ask them to: it shows their ID is checked and how many times their pay covers your rent.` }));
+        return;
+      }
+      if (check.owner_decision === 'accepted') {
+        renter.replaceChildren(title, el('p', { class: 'message message--success', text: `You said yes to ${item.other_name}.` }), el('a', { href: `#/enquiries/${item.id}/check`, class: 'button button--quiet', text: 'Open renter check' }));
+        return;
+      }
+      if (check.owner_decision === 'declined' || !check.shared_at) {
+        renter.replaceChildren(title, el('p', { class: 'field__hint', text: 'You chose someone else this time.' }));
+        return;
+      }
+      const cover = coverLine(check.cover_ratio);
+      renter.replaceChildren(title,
+        el('p', { class: 'lead', text: [check.id_checked ? 'ID checked' : 'ID not checked yet', cover ? `pay covers the rent ${cover.text}` : 'income not checked yet'].join(' · ') }),
+        el('a', { href: `#/enquiries/${item.id}/check`, class: 'button button--primary', text: 'Open renter check' }));
+      return;
+    }
+    // The renter's side
+    if (check?.owner_decision === 'accepted') {
+      renter.replaceChildren(title, el('p', { class: 'message message--success', text: `${item.other_name} said yes. Agree on the details here.` }));
+      return;
+    }
+    if (check?.owner_decision === 'declined') {
+      renter.replaceChildren(title, el('p', { class: 'field__hint', text: 'The owner chose someone else this time. Your check is no longer shared with them.' }));
+      return;
+    }
+    if (check?.shared_at) {
+      const cover = coverLine(check.cover_ratio);
+      const stop = el('button', { type: 'button', class: 'text-button', text: 'Stop sharing' });
+      stop.addEventListener('click', () => whileBusy(stop, 'Stopping…', async () => {
+        try {
+          await stopSharing(item.id);
+          await reload();
+        } catch (problem) {
+          message.show(friendlyListingError(problem));
+        }
+      }));
+      renter.replaceChildren(title,
+        el('p', { class: 'lead', text: `Shared with ${item.other_name}: ${[check.id_checked ? 'ID checked' : 'ID not checked yet', cover ? `pay covers the rent ${cover.text}` : 'income not checked yet'].join(' · ')}.` }),
+        stop);
+      return;
+    }
+    let mine = null;
+    try {
+      mine = await myRenterCheck();
+    } catch {
+      mine = null;
+    }
+    const anyDone = mine && (mine.identity_status === 'approved' || mine.income_status === 'approved');
+    if (!anyDone) {
+      renter.replaceChildren(title,
+        el('p', { class: 'field__hint', text: `Owners choose renters they can trust. Check your ID and income once, then share the result with ${item.other_name} here. Your documents are never shared.` }),
+        el('a', { href: '#/renter-check', class: 'button button--quiet', text: 'Do my renter check' }));
+      return;
+    }
+    if (item.listing_status !== 'live') {
+      renter.replaceChildren(title, el('p', { class: 'field__hint', text: 'This place is no longer listed.' }));
+      return;
+    }
+    renter.replaceChildren(title, shareForm(mine));
+  }
+
+  function shareForm(mine) {
+    const moveIn = el('input', { type: 'date', id: 'move-in', class: 'input', min: todayInSouthAfrica() });
+    const lease = el('select', { id: 'lease', class: 'input' }, [
+      el('option', { value: '', text: 'Not sure yet' }),
+      ...LEASE_CHOICES.map((months) => el('option', { value: String(months), text: `${months} months` })),
+    ]);
+    lease.value = '12';
+    const household = el('input', { type: 'text', id: 'household', class: 'input', maxlength: String(HOUSEHOLD_MAX), placeholder: 'For example: me and 1 child' });
+    const pets = el('select', { id: 'pets', class: 'input' }, [
+      el('option', { value: '', text: 'Prefer not to say' }),
+      el('option', { value: 'no', text: 'No pets' }),
+      el('option', { value: 'yes', text: 'I have pets' }),
+    ]);
+    const agree = el('input', { type: 'checkbox', id: 'share-agree', class: 'check__box' });
+    const go = el('button', { type: 'submit', class: 'button button--primary', text: `Share with ${item.other_name}` });
+    const done = [mine.identity_status === 'approved' ? 'ID checked' : 'ID not checked yet', mine.income_status === 'approved' ? 'income checked' : 'income not checked yet'].join(', ');
+    const form = el('form', { class: 'stack', novalidate: '' }, [
+      el('p', { class: 'field__hint', text: `Your check: ${done}. ${item.other_name} sees your first name and surname initial, whether your ID is checked, how many times your pay covers this rent, and what you write below. Never your documents or your income.` }),
+      el('div', { class: 'two-up' }, [
+        el('div', { class: 'field' }, [el('label', { for: 'move-in', class: 'field__label', text: 'Move in from' }), moveIn]),
+        el('div', { class: 'field' }, [el('label', { for: 'lease', class: 'field__label', text: 'For how long' }), lease]),
+      ]),
+      el('div', { class: 'field' }, [el('label', { for: 'household', class: 'field__label', text: 'Who is moving in (optional)' }), household]),
+      el('div', { class: 'field' }, [el('label', { for: 'pets', class: 'field__label', text: 'Pets' }), pets]),
+      el('label', { class: 'check check--tall', for: 'share-agree' }, [agree, el('span', { class: 'check__text' }, [
+        el('span', { class: 'check__label', text: `I agree to share this with ${item.other_name}` }),
+        el('span', { class: 'check__hint', text: 'You can stop sharing at any time.' }),
+      ])]),
+      go,
+    ]);
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      message.clear();
+      if (!agree.checked) {
+        message.show('Tick the box to agree to share.');
+        return;
+      }
+      const values = { moveIn: moveIn.value || null, leaseMonths: lease.value ? Number(lease.value) : null, household: household.value, pets: pets.value === '' ? null : pets.value === 'yes' };
+      const errors = checkShare(values, todayInSouthAfrica());
+      const first = Object.values(errors)[0];
+      if (first) {
+        message.show(first);
+        return;
+      }
+      whileBusy(go, 'Sharing…', async () => {
+        try {
+          await shareRenterCheck(item.id, values);
+          await reload();
+        } catch (problem) {
+          message.show(friendlyListingError(problem));
+        }
+      });
+    });
+    return form;
+  }
 
   function drawHead() {
     head.replaceChildren(
@@ -161,6 +293,7 @@ export async function renderConversation({ session, route }) {
     messages = freshMessages;
     drawHead();
     drawViewing();
+    if (changed) drawRenter();
     if (changed) {
       drawMessages();
       markRead(item.id).then(refreshUnread).catch(() => {});
@@ -226,6 +359,7 @@ export async function renderConversation({ session, route }) {
 
   drawHead();
   drawViewing();
+  drawRenter();
   drawMessages();
   setTimeout(() => list.lastElementChild?.scrollIntoView({ block: 'end' }), 50);
 
@@ -238,6 +372,7 @@ export async function renderConversation({ session, route }) {
     ]),
     head,
     viewing,
+    renter,
     message.node,
     el('h2', { class: 'section__title', text: 'Messages' }),
     list,

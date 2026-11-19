@@ -41,6 +41,16 @@ const BY_HINT = {
   bad_doc_path: 'The document could not be saved. Try again.',
   check_not_waiting: 'This check was already decided.',
   check_not_found: 'This check was not found.',
+  // Renter check (Sprint 7)
+  need_income_docs: 'Add your latest payslip or 3 months of bank statements.',
+  not_the_renter: 'Only the renter can share their check.',
+  not_the_owner: 'Only the owner can answer.',
+  already_decided: 'The owner has already answered.',
+  move_in_date: 'Choose a move-in date in the next 12 months.',
+  lease_months: 'Choose 6, 12, 24 or 36 months.',
+  household_too_long: 'Keep this under 120 characters.',
+  not_shared: 'The renter has not shared their check.',
+  income_amount: 'Enter the monthly take-home pay.',
 };
 
 // Problems from the phone itself (photos, camera, location).

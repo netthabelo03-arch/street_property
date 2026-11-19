@@ -94,6 +94,7 @@ export async function renderProfile({ session }) {
   });
 
   const shortcuts = [
+    el('a', { href: '#/renter-check', class: 'button button--quiet', text: 'My renter check' }),
     ...(canList(profile.role) ? [el('a', { href: '#/my-listings', class: 'button button--quiet', text: 'My listings' })] : []),
     ...(admin ? [el('a', { href: '#/review', class: 'button button--quiet', text: 'Review queue' })] : []),
   ];

@@ -21,6 +21,8 @@
 //   #/saved                  saved places
 //   #/enquiries              viewings and conversations
 //   #/enquiries/<id>         one conversation
+//   #/enquiries/<id>/check   the owner's view of a shared renter check
+//   #/renter-check           your own renter check
 //   #/place/<id>             a live listing (anyone)
 
 import { isUuid } from './listings/rules.js';
@@ -28,10 +30,10 @@ import { isUuid } from './listings/rules.js';
 const EXPLORE = { screen: 'explore' };
 
 /** Screens whose address is just their name, like "#/signin". */
-const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters', 'map', 'enquiries', 'saved', 'tours'];
+const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters', 'map', 'enquiries', 'saved', 'tours', 'renter-check'];
 
 /** Screens that only a signed-in person may open. */
-export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing', 'enquiries', 'enquiry', 'saved', 'list-verify', 'review-check'];
+export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing', 'enquiries', 'enquiry', 'saved', 'list-verify', 'review-check', 'renter-check', 'enquiry-check'];
 
 /** Screens that make no sense once signed in. */
 export const GUEST_SCREENS = ['signup', 'signin', 'forgot'];
@@ -50,11 +52,12 @@ export function parseRoute(hash) {
     if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'send') return { screen: 'list-send', id: parts[1].toLowerCase() };
     if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'verify') return { screen: 'list-verify', id: parts[1].toLowerCase() };
   }
-  if (parts[0] === 'review' && parts.length === 4 && parts[1] === 'check' && ['identity', 'ownership'].includes(parts[2]) && isUuid(parts[3])) {
+  if (parts[0] === 'review' && parts.length === 4 && parts[1] === 'check' && ['identity', 'ownership', 'income'].includes(parts[2]) && isUuid(parts[3])) {
     return { screen: 'review-check', kind: parts[2], id: parts[3].toLowerCase() };
   }
   if (parts[0] === 'review' && parts.length === 2 && isUuid(parts[1])) return { screen: 'review-listing', id: parts[1].toLowerCase() };
   if (parts[0] === 'enquiries' && parts.length === 2 && isUuid(parts[1])) return { screen: 'enquiry', id: parts[1].toLowerCase() };
+  if (parts[0] === 'enquiries' && parts.length === 3 && isUuid(parts[1]) && parts[2] === 'check') return { screen: 'enquiry-check', id: parts[1].toLowerCase() };
   if (parts[0] === 'place' && parts.length === 2 && isUuid(parts[1])) return { screen: 'place', id: parts[1].toLowerCase() };
   // Anything unknown falls back to Explore instead of a blank page.
   return EXPLORE;
@@ -83,6 +86,7 @@ export function hashFor(route) {
     case 'review-listing': return `#/review/${route.id}`;
     case 'place': return `#/place/${route.id}`;
     case 'enquiry': return `#/enquiries/${route.id}`;
+    case 'enquiry-check': return `#/enquiries/${route.id}/check`;
     default: return `#/${route.screen}`;
   }
 }
@@ -104,7 +108,7 @@ export function safeNext(hash) {
 export function tabFor(screen) {
   if (screen === 'map') return 'map';
   if (screen === 'saved') return 'saved';
-  if (screen === 'enquiries' || screen === 'enquiry') return 'enquiries';
-  if (['profile', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'list-verify', 'review', 'review-listing', 'review-check'].includes(screen)) return 'profile';
+  if (screen === 'enquiries' || screen === 'enquiry' || screen === 'enquiry-check') return 'enquiries';
+  if (['profile', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'list-verify', 'review', 'review-listing', 'review-check', 'renter-check'].includes(screen)) return 'profile';
   return 'explore';
 }
