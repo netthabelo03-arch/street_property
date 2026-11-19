@@ -101,6 +101,12 @@ const BY_HINT = {
   review_stars: 'Choose 1 to 5 stars.',
   review_long: 'Keep the review under 500 characters.',
   review_done: 'You already rated this deal.',
+  // Promote (Sprint 11)
+  boost_not_live: 'You can promote a place once it is live.',
+  boost_tier: 'Choose a boost.',
+  boost_too_many: 'Too many unpaid boosts. Try again in an hour.',
+  promote_down: 'Payments are not answering right now. Try again in a few minutes.',
+  email_needed: 'Your account needs an email address to pay.',
 };
 
 // Problems from the phone itself (photos, camera, location).

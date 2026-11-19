@@ -15,8 +15,51 @@ import { saveNext } from '../next.js';
 import { savedIds, saveListing, unsaveListing } from '../saved/api.js';
 import { ratingSummary } from '../deals/api.js';
 import { ratingLine } from '../deals/rules.js';
+import { trueMonthlyCost, electricityGuess, shareOfPay, isFeatured } from '../promote/rules.js';
 import { topBar, tabBar } from '../shell.js';
 import { el, messageBox, whileBusy } from '../dom.js';
+
+/** "What it really costs": rent plus the renter's own estimates, and the move-in amount. */
+function trueCostCard(listing) {
+  const prepaid = listing.features.includes('prepaid');
+  const fields = [
+    { key: 'electricity', label: prepaid ? 'Prepaid electricity' : 'Electricity', value: electricityGuess(listing.bedrooms) },
+    { key: 'water', label: 'Water and refuse (if not in the rent)', value: 0 },
+    { key: 'transport', label: 'Transport to work or school', value: 0 },
+    { key: 'internet', label: listing.features.includes('wifi') ? 'Internet (Wi-Fi is there; any extra)' : 'Internet and data', value: 0 },
+  ];
+  const inputs = fields.map((field) => ({
+    ...field,
+    input: el('input', { id: `cost-${field.key}`, class: 'input', inputmode: 'numeric', value: String(field.value) }),
+  }));
+  const pay = el('input', { id: 'cost-pay', class: 'input', inputmode: 'numeric', placeholder: 'Optional' });
+  const total = el('p', { class: 'cost__total', 'aria-live': 'polite' });
+  const detail = el('p', { class: 'field__hint' });
+  const update = () => {
+    const extras = Object.fromEntries(inputs.map((f) => [f.key, f.input.value.replace(/\s/g, '')]));
+    const cost = trueMonthlyCost({ rent: listing.price_rands, deposit: listing.deposit_rands, extras });
+    const share = shareOfPay(cost.monthly, pay.value.replace(/\s/g, ''));
+    total.textContent = `About ${formatRands(cost.monthly)} a month`;
+    detail.textContent = `Rent ${formatRands(listing.price_rands)} + ${formatRands(cost.extra)} of other costs. To move in: about ${formatRands(cost.moveIn)} (first month and deposit).`
+      + (share === null ? '' : ` That is ${share}% of your take-home pay${share > 35 ? ', more than the 30 to 35% most advisers suggest' : ''}.`);
+  };
+  for (const f of inputs) f.input.addEventListener('input', update);
+  pay.addEventListener('input', update);
+  update();
+  return el('section', { class: 'section' }, [
+    el('h2', { class: 'section__title', text: 'What it really costs' }),
+    total,
+    detail,
+    el('details', { class: 'suggest-other' }, [
+      el('summary', { text: 'Change the estimates' }),
+      el('div', { class: 'stack' }, [
+        ...inputs.map((f) => el('div', { class: 'field' }, [el('label', { for: f.input.id, class: 'field__label', text: `${f.label} (R a month)` }), f.input])),
+        el('div', { class: 'field' }, [el('label', { for: 'cost-pay', class: 'field__label', text: 'Your take-home pay (R a month)' }), pay,
+          el('p', { class: 'field__hint', text: 'Stays on this phone. It is not saved or sent anywhere.' })]),
+      ]),
+    ]),
+  ]);
+}
 
 export async function renderPlace({ session, route }) {
   const { profile } = await loadViewer(session);
@@ -120,6 +163,7 @@ export async function renderPlace({ session, route }) {
     ]),
     el('div', { class: 'badge-row' }, [
       ...(listing.verified_at ? [el('span', { class: 'chip chip--verified', text: 'Street Verified' })] : []),
+      ...(isFeatured(listing) ? [el('span', { class: 'chip chip--featured', text: 'Featured' })] : []),
       el('span', { class: 'chip chip--good', text: 'Filmed on site' }),
       el('span', { class: 'chip chip--good', text: 'Checked by Street Property' }),
     ]),
@@ -131,6 +175,8 @@ export async function renderPlace({ session, route }) {
       ...(features.length ? [el('ul', { class: 'feature-list' }, features.map((line) => el('li', { text: line })))] : []),
       ...(listing.description ? [el('p', { class: 'prose', text: listing.description })] : []),
     ]),
+    ...(listing.mode === 'rent' ? [trueCostCard(listing)] : []),
+    el('a', { href: `#/ad/${listing.id}`, class: 'button button--quiet', text: mine ? 'Share or print an ad' : 'Share this place' }),
     ...(tour.length ? [el('section', { class: 'section' }, [
       el('h2', { class: 'section__title', text: `Video tour · ${formatSeconds(seconds)}` }),
       el('p', { class: 'lead', text: 'Filmed at the address in the app, room by room. Each clip shows the day\'s code in its corner.' }),

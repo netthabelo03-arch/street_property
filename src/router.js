@@ -27,6 +27,9 @@
 //   #/deals/<id>/check       the move-in check, room by room
 //   #/deals/<id>/rent        the rent record: every month, paid or due
 //   #/payouts                the bank account Street Safe pays an owner into
+//   #/list/<id>/promote      paid boosts and free promotion for a live listing
+//   #/ad/<id>                a shareable, printable ad page with a QR code
+//   #/board/<id>             a printable To Let board
 //   #/renter-check           your own renter check
 //   #/review/reports         an admin's open reports
 //   #/place/<id>             a live listing (anyone)
@@ -39,7 +42,7 @@ const EXPLORE = { screen: 'explore' };
 const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters', 'map', 'enquiries', 'saved', 'tours', 'renter-check', 'payouts'];
 
 /** Screens that only a signed-in person may open. */
-export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing', 'enquiries', 'enquiry', 'saved', 'list-verify', 'review-check', 'renter-check', 'enquiry-check', 'review-reports', 'deal', 'deal-lease', 'deal-check', 'deal-rent', 'payouts'];
+export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing', 'enquiries', 'enquiry', 'saved', 'list-verify', 'review-check', 'renter-check', 'enquiry-check', 'review-reports', 'deal', 'deal-lease', 'deal-check', 'deal-rent', 'payouts', 'list-promote'];
 
 /** Screens that make no sense once signed in. */
 export const GUEST_SCREENS = ['signup', 'signin', 'forgot'];
@@ -49,7 +52,8 @@ export const GUEST_SCREENS = ['signup', 'signin', 'forgot'];
  * @returns {{ screen: string, id?: string }}
  */
 export function parseRoute(hash) {
-  const parts = String(hash ?? '').replace(/^#/, '').split('/').filter(Boolean);
+  // Anything after '?' is dropped (Paystack adds ?trxref=…&reference=… when it sends people back).
+  const parts = String(hash ?? '').replace(/^#/, '').split('?')[0].split('/').filter(Boolean);
   if (parts.length === 1 && NAMED_SCREENS.includes(parts[0])) return { screen: parts[0] };
   if (parts[0] === 'list') {
     if (parts.length === 2 && parts[1] === 'new') return { screen: 'list-new' };
@@ -57,6 +61,7 @@ export function parseRoute(hash) {
     if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'tour') return { screen: 'list-tour', id: parts[1].toLowerCase() };
     if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'send') return { screen: 'list-send', id: parts[1].toLowerCase() };
     if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'verify') return { screen: 'list-verify', id: parts[1].toLowerCase() };
+    if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'promote') return { screen: 'list-promote', id: parts[1].toLowerCase() };
   }
   if (parts[0] === 'review' && parts.length === 2 && parts[1] === 'reports') return { screen: 'review-reports' };
   if (parts[0] === 'review' && parts.length === 4 && parts[1] === 'check' && ['identity', 'ownership', 'income'].includes(parts[2]) && isUuid(parts[3])) {
@@ -65,6 +70,8 @@ export function parseRoute(hash) {
   if (parts[0] === 'review' && parts.length === 2 && isUuid(parts[1])) return { screen: 'review-listing', id: parts[1].toLowerCase() };
   if (parts[0] === 'enquiries' && parts.length === 2 && isUuid(parts[1])) return { screen: 'enquiry', id: parts[1].toLowerCase() };
   if (parts[0] === 'enquiries' && parts.length === 3 && isUuid(parts[1]) && parts[2] === 'check') return { screen: 'enquiry-check', id: parts[1].toLowerCase() };
+  if (parts[0] === 'ad' && parts.length === 2 && isUuid(parts[1])) return { screen: 'ad', id: parts[1].toLowerCase() };
+  if (parts[0] === 'board' && parts.length === 2 && isUuid(parts[1])) return { screen: 'board', id: parts[1].toLowerCase() };
   if (parts[0] === 'deals' && parts.length === 2 && isUuid(parts[1])) return { screen: 'deal', id: parts[1].toLowerCase() };
   if (parts[0] === 'deals' && parts.length === 3 && isUuid(parts[1]) && parts[2] === 'lease') return { screen: 'deal-lease', id: parts[1].toLowerCase() };
   if (parts[0] === 'deals' && parts.length === 3 && isUuid(parts[1]) && parts[2] === 'check') return { screen: 'deal-check', id: parts[1].toLowerCase() };
@@ -93,6 +100,9 @@ export function hashFor(route) {
     case 'list-tour': return `#/list/${route.id}/tour`;
     case 'list-send': return `#/list/${route.id}/send`;
     case 'list-verify': return `#/list/${route.id}/verify`;
+    case 'list-promote': return `#/list/${route.id}/promote`;
+    case 'ad': return `#/ad/${route.id}`;
+    case 'board': return `#/board/${route.id}`;
     case 'review-check': return `#/review/check/${route.kind}/${route.id}`;
     case 'review-reports': return '#/review/reports';
     case 'review-listing': return `#/review/${route.id}`;
@@ -125,6 +135,6 @@ export function tabFor(screen) {
   if (screen === 'map') return 'map';
   if (screen === 'saved') return 'saved';
   if (['enquiries', 'enquiry', 'enquiry-check', 'deal', 'deal-lease', 'deal-check', 'deal-rent'].includes(screen)) return 'enquiries';
-  if (['profile', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'list-verify', 'review', 'review-listing', 'review-check', 'review-reports', 'renter-check', 'payouts'].includes(screen)) return 'profile';
+  if (['profile', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'list-verify', 'review', 'review-listing', 'review-check', 'review-reports', 'renter-check', 'payouts', 'list-promote'].includes(screen)) return 'profile';
   return 'explore';
 }

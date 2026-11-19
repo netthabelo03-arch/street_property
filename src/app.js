@@ -28,6 +28,7 @@ import { renderTours } from './screens/tours.js';
 import { renderSaved } from './screens/saved.js';
 import { renderDeal, renderDealLease, renderDealCheck, renderDealRent } from './screens/deal.js';
 import { renderPayouts } from './screens/payouts.js';
+import { renderPromote, renderAd, renderBoard } from './screens/promote.js';
 import { forgetViewer } from './viewer.js';
 
 const SCREENS = {
@@ -63,6 +64,9 @@ const SCREENS = {
   'deal-check': renderDealCheck,
   'deal-rent': renderDealRent,
   payouts: renderPayouts,
+  'list-promote': renderPromote,
+  ad: renderAd,
+  board: renderBoard,
 };
 
 const root = document.getElementById('app');

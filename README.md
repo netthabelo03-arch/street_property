@@ -6,7 +6,14 @@ Phone-first web app: plain HTML, CSS and JavaScript (no build step), Supabase fo
 
 Live: https://netthabelo03-arch.github.io/street_property/
 
-## Sprint 10 (this version): rent record, reminders, reviews
+## Sprint 11 (this version): Promote
+
+- **Paid boosts** for live listings, paid once on Paystack's page (card or EFT): R49 for 7 days, R99 for 14 days, R179 for 30 days with a **Featured** badge. Boosted listings show first in Explore, the map list and Tours; a new boost starts when the current one ends. The `promote` Edge Function starts a boost only after Paystack confirms the payment for the right amount. Setup: `docs/paystack-setup.md`.
+- **Free tools:** an ad page for every live listing (`#/ad/<id>`) with a QR code, printable; a ready-made **social post** picture (1080 × 1350) with the words to go with it; and a printable A4 **To Let board** (`#/board/<id>`).
+- **What it really costs:** on every rent listing, rent plus estimates for electricity, water, transport and internet, the move-in amount, and the share of take-home pay. Nothing is saved.
+- Database: `supabase/014_promote.sql` (dry run, 8 checks). Test cases: `docs/sprint-11-test-cases.md`.
+
+## Sprint 10: rent record, reminders, reviews
 
 - **Rent record:** when the renter confirms the keys, every month of the lease gets a line with its due date. The renter pays the earliest due month through Street Safe (passed straight to the owner), or the owner taps **Mark received** for rent paid another way. Each paid month is the written receipt the lease promises.
 - **Reminders:** every morning at 07:00 (South African time) the renter gets an email 3 days before rent or a deposit part is due and on the day; at 3 days late a note goes into the conversation. Runs in the database (`pg_cron`).
@@ -143,7 +150,7 @@ Limits to watch:
 
 ## Set up
 
-1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`, then `supabase/005_enquiries.sql`, then `supabase/006_saved.sql`, then `supabase/007_verified.sql`, `008_renter_check.sql`, `009_reports_email.sql`, `010_deals.sql`, `011_street_safe.sql`, `012_deposit_plans.sql` and `013_rent_reviews.sql`. Deploy `supabase/functions/send-emails` and `supabase/functions/street-safe` as Edge Functions and follow `docs/email-setup.md` and `docs/street-safe-setup.md`.
+1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`, then `supabase/005_enquiries.sql`, then `supabase/006_saved.sql`, then `supabase/007_verified.sql`, `008_renter_check.sql`, `009_reports_email.sql`, `010_deals.sql`, `011_street_safe.sql`, `012_deposit_plans.sql`, `013_rent_reviews.sql` and `014_promote.sql`. Deploy `supabase/functions/send-emails`, `street-safe` and `promote` as Edge Functions and follow `docs/email-setup.md`, `docs/street-safe-setup.md` and `docs/paystack-setup.md`.
 2. **Connect the app.** In `src/config.js`, fill in `SUPABASE_URL` (Project Settings, Data API) and `SUPABASE_PUBLISHABLE_KEY` (Project Settings, API Keys, the `sb_publishable_…` key). Never put a secret key in the app.
 3. **Sign-in links.** In Supabase, Authentication, URL Configuration: set Site URL to the app's address and add it under Redirect URLs.
 4. **Admins.** After signing up, add yourself in SQL Editor: `insert into public.admins (user_id) values ('<your user id>');`

@@ -148,6 +148,10 @@ export async function renderListSend({ session, navigate, route }) {
       clipList,
     ]),
     ...actions,
+    ...(listing.status === 'live' ? [el('a', { href: `#/list/${listing.id}/promote`, class: 'verify-link' }, [
+      el('span', { class: 'verify-link__title', text: 'Promote this place' }),
+      el('span', { class: 'verify-link__line', text: 'Boosts from R49, plus a free ad page, social post and To Let board.' }),
+    ])] : []),
     el('a', { href: `#/list/${listing.id}/verify`, class: 'verify-link' }, [
       el('span', { class: 'verify-link__title', text: listing.verified_at ? 'Street Verified \u2713' : 'Get the Street Verified badge' }),
       el('span', { class: 'verify-link__line', text: listing.verified_at ? 'Your ID and ownership are checked.' : `${badgeLine(verification)}. Verified places get more serious enquiries.` }),

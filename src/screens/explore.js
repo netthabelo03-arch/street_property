@@ -49,6 +49,7 @@ export function placeCard(listing, tours) {
   }
   const badges = [el('span', { class: 'place-card__badge place-card__badge--good', text: 'Filmed on site' })];
   if (listing.verified_at) badges.unshift(el('span', { class: 'place-card__badge place-card__badge--verified', text: 'Street Verified' }));
+  if (listing.featured) badges.unshift(el('span', { class: 'place-card__badge place-card__badge--featured', text: 'Featured' }));
   if (listing.clip_count > 0) {
     badges.push(el('span', { class: 'place-card__badge' }, [icon(PLAY, 12), el('span', { text: ` Video tour · ${formatSeconds(listing.tour_seconds)}` })]));
   }
