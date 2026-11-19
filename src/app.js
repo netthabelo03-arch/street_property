@@ -155,6 +155,12 @@ function watchConnection() {
 }
 
 start();
+window.__streetStarted = true;
+try {
+  sessionStorage.removeItem('street-property.reloaded');
+} catch {
+  // private mode: nothing to clear
+}
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
