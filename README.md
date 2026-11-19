@@ -6,7 +6,15 @@ Phone-first web app: plain HTML, CSS and JavaScript (no build step), Supabase fo
 
 Live: https://netthabelo03-arch.github.io/street_property/
 
-## Sprint 9 (this version): Street Safe payments
+## Sprint 10 (this version): rent record, reminders, reviews
+
+- **Rent record:** when the renter confirms the keys, every month of the lease gets a line with its due date. The renter pays the earliest due month through Street Safe (passed straight to the owner), or the owner taps **Mark received** for rent paid another way. Each paid month is the written receipt the lease promises.
+- **Reminders:** every morning at 07:00 (South African time) the renter gets an email 3 days before rent or a deposit part is due and on the day; at 3 days late a note goes into the conversation. Runs in the database (`pg_cron`).
+- **Rate your deal:** after the keys, owner and renter each rate the other once, 1 to 5 stars with a few words. Reviews stay hidden until both have rated, or 14 days after the keys. Owners' ratings show on their listings; renters' ratings show on their shared renter check.
+- Debit orders are left for later.
+- Database: `supabase/013_rent_reviews.sql` (dry run, 10 checks). Test cases: `docs/sprint-10-test-cases.md`.
+
+## Sprint 9: Street Safe payments
 
 - After both sign the lease, the renter pays the **first month's rent and the deposit** into **TradeSafe** (a registered South African escrow service) by card, Ozow or EFT on TradeSafe's own page.
 - TradeSafe holds the money until the renter taps **I have the keys**, then pays the owner. If the deal is called off first, the renter is refunded.
@@ -135,7 +143,7 @@ Limits to watch:
 
 ## Set up
 
-1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`, then `supabase/005_enquiries.sql`, then `supabase/006_saved.sql`, then `supabase/007_verified.sql`, `008_renter_check.sql`, `009_reports_email.sql`, `010_deals.sql`, `011_street_safe.sql` and `012_deposit_plans.sql`. Deploy `supabase/functions/send-emails` and `supabase/functions/street-safe` as Edge Functions and follow `docs/email-setup.md` and `docs/street-safe-setup.md`.
+1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`, then `supabase/005_enquiries.sql`, then `supabase/006_saved.sql`, then `supabase/007_verified.sql`, `008_renter_check.sql`, `009_reports_email.sql`, `010_deals.sql`, `011_street_safe.sql`, `012_deposit_plans.sql` and `013_rent_reviews.sql`. Deploy `supabase/functions/send-emails` and `supabase/functions/street-safe` as Edge Functions and follow `docs/email-setup.md` and `docs/street-safe-setup.md`.
 2. **Connect the app.** In `src/config.js`, fill in `SUPABASE_URL` (Project Settings, Data API) and `SUPABASE_PUBLISHABLE_KEY` (Project Settings, API Keys, the `sb_publishable_…` key). Never put a secret key in the app.
 3. **Sign-in links.** In Supabase, Authentication, URL Configuration: set Site URL to the app's address and add it under Redirect URLs.
 4. **Admins.** After signing up, add yourself in SQL Editor: `insert into public.admins (user_id) values ('<your user id>');`
