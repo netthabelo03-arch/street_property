@@ -62,7 +62,7 @@ export function listingSummary(listing, { href, extra = [] } = {}) {
       statusChip(listing.status),
     ]),
     el('p', { class: 'listing-row__price', text: priceLine(listing) }),
-    el('p', { class: 'listing-row__place', text: `${listing.street}, ${listing.area}, ${listing.city}` }),
+    el('p', { class: 'listing-row__place', text: `${listing.street ?? listing.street_public ?? ''}, ${listing.area}, ${listing.city}` }),
     ...extra,
   ];
   return href ? el('a', { class: 'listing-row', href }, body) : el('div', { class: 'listing-row' }, body);

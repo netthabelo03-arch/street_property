@@ -129,7 +129,8 @@ export function publicStreet(street) {
 
 /** "Ngakane Street, Orlando West, Soweto" */
 export function publicPlace(listing) {
-  return [publicStreet(listing.street), listing.area, listing.city].filter(Boolean).join(', ');
+  const street = listing.street_public ?? publicStreet(listing.street);
+  return [street, listing.area, listing.city].filter(Boolean).join(', ');
 }
 
 /** "2 beds · 1 bath · 1 parking · Prepaid electricity" */

@@ -3,7 +3,9 @@
 
 import { getClient } from '../auth/client.js';
 
-const COLUMNS = 'id, owner_id, lister, mode, kind, street, area, city, price_rands, deposit_rands, bedrooms, bathrooms, parking, features, description, available_from, status, review_note, filmed_lat, filmed_lng, created_at, updated_at, submitted_at, reviewed_at';
+// Everyone may read these. The full street and the exact spot where the tour
+// was filmed are private: owners and admins get them from listing_private().
+const COLUMNS = 'id, owner_id, lister, mode, kind, street_public, area, city, price_rands, deposit_rands, bedrooms, bathrooms, parking, features, description, available_from, status, review_note, approx_lat, approx_lng, created_at, updated_at, submitted_at, reviewed_at';
 const PHOTO_BUCKET = 'listing-photos';
 const TOUR_BUCKET = 'listing-tours';
 const LINK_SECONDS = 60 * 60;
@@ -13,26 +15,45 @@ function check({ data, error }) {
   return data;
 }
 
+/** Add the full street and exact spot to listings the caller owns (or to any, for an admin). */
+async function withPrivate(listings) {
+  if (listings.length === 0) return listings;
+  const client = await getClient();
+  const rows = check(await client.rpc('listing_private', { p_ids: listings.map((listing) => listing.id) }));
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  return listings.map((listing) => {
+    const extra = byId.get(listing.id);
+    return extra ? { ...listing, street: extra.street, filmed_lat: extra.filmed_lat, filmed_lng: extra.filmed_lng } : listing;
+  });
+}
+
 /** The signed-in person's listings, newest first. */
 export async function myListings(userId) {
   const client = await getClient();
-  return check(await client.from('listings').select(COLUMNS).eq('owner_id', userId).order('created_at', { ascending: false }));
+  return withPrivate(check(await client.from('listings').select(COLUMNS).eq('owner_id', userId).order('created_at', { ascending: false })));
 }
 
-/** One listing, or null when it does not exist or may not be seen. */
-export async function getListing(id) {
+/**
+ * One listing, or null when it does not exist or may not be seen.
+ * With `{ private: true }` (owner and admin screens) it includes the full street.
+ */
+export async function getListing(id, { private: withAddress = false } = {}) {
   const client = await getClient();
-  return check(await client.from('listings').select(COLUMNS).eq('id', id).maybeSingle());
+  const listing = check(await client.from('listings').select(COLUMNS).eq('id', id).maybeSingle());
+  if (!listing || !withAddress) return listing;
+  return (await withPrivate([listing]))[0];
 }
 
 export async function createListing(values) {
   const client = await getClient();
-  return check(await client.from('listings').insert(values).select(COLUMNS).single());
+  const listing = check(await client.from('listings').insert(values).select(COLUMNS).single());
+  return { ...listing, street: values.street };
 }
 
 export async function updateListing(id, values) {
   const client = await getClient();
-  return check(await client.from('listings').update(values).eq('id', id).select(COLUMNS).single());
+  const listing = check(await client.from('listings').update(values).eq('id', id).select(COLUMNS).single());
+  return { ...listing, street: values.street };
 }
 
 /** Delete a draft and its files. */
@@ -89,12 +110,23 @@ export async function reorderPhotos(photos) {
   }));
 }
 
-/** The tour clips, each with a link to play it. */
-export async function listClips(listingId) {
+/**
+ * The tour clips, each with a link to play it. With `{ places: true }`
+ * (the reviewer) each also has where it was filmed.
+ */
+export async function listClips(listingId, { places = false } = {}) {
   const client = await getClient();
-  const rows = check(await client.from('tour_clips').select('id, room, path, seconds, lat, lng, accuracy_m, code, recorded_at').eq('listing_id', listingId).order('recorded_at'));
+  const rows = check(await client.from('tour_clips').select('id, room, path, seconds, code, recorded_at').eq('listing_id', listingId).order('recorded_at'));
   const urls = await links(TOUR_BUCKET, rows.map((row) => row.path));
-  return rows.map((row, index) => ({ ...row, url: urls[index] }));
+  let where = new Map();
+  if (places && rows.length) {
+    where = new Map(check(await client.rpc('clip_places', { p_listing: listingId })).map((row) => [row.id, row]));
+  }
+  return rows.map((row, index) => ({
+    ...row,
+    url: urls[index],
+    ...(where.has(row.id) ? { lat: where.get(row.id).lat, lng: where.get(row.id).lng, accuracy_m: where.get(row.id).accuracy_m } : {}),
+  }));
 }
 
 /** Today's code to show in the corner of every clip. */
@@ -146,7 +178,7 @@ export async function withdrawListing(id) {
 /** For admins: listings waiting to be checked, oldest first. */
 export async function reviewQueue() {
   const client = await getClient();
-  return check(await client.from('listings').select(COLUMNS).eq('status', 'in_review').order('submitted_at', { ascending: true }));
+  return withPrivate(check(await client.from('listings').select(COLUMNS).eq('status', 'in_review').order('submitted_at', { ascending: true })));
 }
 
 /** For admins: approve, or ask for changes with a note. Returns the new state. */

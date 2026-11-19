@@ -6,7 +6,20 @@ Phone-first web app: plain HTML, CSS and JavaScript (no build step), Supabase fo
 
 Live: https://netthabelo03-arch.github.io/street_property/
 
-## Sprint 2 (this version): Explore and filters
+## Sprint 3 (this version): map, full-screen tour, private address
+
+- **Map tab** (`#/map`): live listings as price pins on a dark street map.
+  - **Search as you move:** pins update for the area on screen, with Explore's Rent / Buy and filters.
+  - **Pins:** tap one to see its card. Pins sit on a spot rounded to about 100 m, never on the house.
+  - **Library:** Leaflet 1.9.4 from cdnjs, checked with an integrity hash. Map tiles come from OpenStreetMap; switch `TILES` in `src/map/leaflet.js` to a provider with an API key before launch.
+- **Listing page:**
+  - **Full-screen tour:** room after room, with a bar per room; tap right for next, left for back.
+  - **The area:** a small map with a circle, not a pin.
+- **Private address:** the full street and exact spots are now readable only by the owner and admins, through `listing_private()` and `clip_places()`.
+  - **Everyone else gets:** `street_public` (no house number) and `approx_lat` / `approx_lng`.
+  - **Database:** `supabase/004_map.sql`; its dry run has 12 checks.
+
+## Sprint 2: Explore and filters
 
 - **Explore** shows live listings, newest checked first, 20 at a time with Show more.
   - **Each card:** cover photo, "Filmed on site", tour length, price, title, place and key facts.
@@ -48,7 +61,7 @@ Limits to watch:
 
 ## Set up
 
-1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`.
+1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`.
 2. **Connect the app.** In `src/config.js`, fill in `SUPABASE_URL` (Project Settings, Data API) and `SUPABASE_PUBLISHABLE_KEY` (Project Settings, API Keys, the `sb_publishable_…` key). Never put a secret key in the app.
 3. **Sign-in links.** In Supabase, Authentication, URL Configuration: set Site URL to the app's address and add it under Redirect URLs.
 4. **Admins.** After signing up, add yourself in SQL Editor: `insert into public.admins (user_id) values ('<your user id>');`

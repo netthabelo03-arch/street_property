@@ -1,11 +1,13 @@
 // A live listing as renters and buyers see it: photos, price, the facts,
-// and the video tour room by room. (Sprint 3 adds the map and a full-screen
-// tour; Sprint 4 adds Ask the owner and booking a viewing.)
+// the video tour (room by room, or full screen) and the area on a map.
+// (Sprint 4 adds Ask the owner and booking a viewing.)
 
 import { loadViewer } from '../viewer.js';
 import { getListing, listPhotos, listClips } from '../listings/api.js';
 import { FEATURES, listingTitle, priceLine, formatRands, formatSeconds, tourRooms, findKind } from '../listings/rules.js';
 import { publicPlace, cardFacts } from '../explore/filters.js';
+import { loadLeaflet, makeMap } from '../map/leaflet.js';
+import { openTour } from './tourplayer.js';
 import { topBar, tabBar } from '../shell.js';
 import { el } from '../dom.js';
 
@@ -62,6 +64,30 @@ export async function renderPlace({ session, route }) {
     if (playing + 1 < tour.length) play(playing + 1, true);
   });
   if (tour.length) play(0, false);
+  const fullScreen = el('button', { type: 'button', class: 'button button--primary', text: `Watch the tour full screen · ${formatSeconds(seconds)}` });
+  fullScreen.addEventListener('click', () => {
+    player.pause();
+    openTour({ clips: tour, roomName, title: listingTitle(listing), start: playing });
+  });
+
+  // The area: a circle about 250 m across around the rounded spot, never a pin on the house.
+  let area = [];
+  if (listing.approx_lat != null && listing.approx_lng != null) {
+    const holder = el('div', { class: 'map map--small', role: 'img', 'aria-label': `Map of the area around ${listing.area}` });
+    const caption = el('p', { class: 'field__hint', text: `Somewhere in this circle in ${listing.area}. The exact address is not shown publicly.` });
+    area = [el('section', { class: 'section' }, [el('h2', { class: 'section__title', text: 'The area' }), holder, caption])];
+    setTimeout(async () => {
+      try {
+        const L = await loadLeaflet();
+        if (!holder.isConnected) return;
+        const centre = [listing.approx_lat, listing.approx_lng];
+        const map = makeMap(L, holder, { scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false }).setView(centre, 15);
+        L.circle(centre, { radius: 250, color: '#5CCFB7', weight: 2, fillColor: '#157F6A', fillOpacity: 0.25 }).addTo(map);
+      } catch {
+        caption.textContent = `In ${listing.area}, ${listing.city}. The map could not load.`;
+      }
+    }, 0);
+  }
 
   const features = FEATURES.filter((item) => listing.features.includes(item.id)).map((item) => item.label);
   const facts = [
@@ -94,9 +120,11 @@ export async function renderPlace({ session, route }) {
     ...(tour.length ? [el('section', { class: 'section' }, [
       el('h2', { class: 'section__title', text: `Video tour · ${formatSeconds(seconds)}` }),
       el('p', { class: 'lead', text: 'Filmed at the address in the app, room by room. Each clip shows the day\'s code in its corner.' }),
+      fullScreen,
       player,
       el('div', { class: 'choices', role: 'group', 'aria-label': 'Rooms' }, roomButtons),
     ])] : []),
+    ...area,
     el('div', { class: 'note' }, [
       el('p', { class: 'checklist__title', text: 'Interested?' }),
       el('p', { text: 'Asking the owner and booking a viewing open soon. Never pay a deposit before you have seen the place and signed a lease.' }),

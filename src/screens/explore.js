@@ -14,6 +14,7 @@ import { el, icon } from '../dom.js';
 const SEARCH = '<circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path>';
 const SHIELD = '<path d="M12 3l8 3v6c0 5-3.5 8.5-8 9.5C7.5 20.5 4 17 4 12V6z"></path><path d="M8.5 12l2.5 2.5 4.5-5"></path>';
 const SLIDERS = '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle>';
+const PIN = '<path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"></path><circle cx="12" cy="9" r="2.5"></circle>';
 const PLAY = '<path d="M8 5v14l11-7z" fill="currentColor" stroke="none"></path>';
 
 /** The words for each mode of the Rent / Buy switch. */
@@ -33,7 +34,8 @@ const watcher = typeof IntersectionObserver === 'function'
   }, { threshold: 0.6 })
   : null;
 
-function placeCard(listing, tours) {
+/** A listing card (also used under the map). */
+export function placeCard(listing, tours) {
   const media = el('div', { class: 'place-card__media' });
   if (tours && listing.tourUrl) {
     const video = el('video', { class: 'place-card__image', muted: '', loop: '', playsinline: '', preload: 'metadata', 'aria-label': `Video tour of ${listingTitle(listing)}` });
@@ -104,7 +106,8 @@ export async function renderExplore({ session }) {
       search();
     });
     const quick = quickChips(filters).map((chip) => el('a', { href: '#/filters', class: `chip-button chip-button--quiet${chip.on ? ' chip-button--on' : ''}`, text: chip.label }));
-    chipRow.replaceChildren(filterButton, tours, ...quick);
+    const onMap = el('a', { href: '#/map', class: 'chip-button chip-button--quiet' }, [icon(PIN, 16), el('span', { text: 'Map' })]);
+    chipRow.replaceChildren(filterButton, tours, onMap, ...quick);
   }
 
   function emptyState() {

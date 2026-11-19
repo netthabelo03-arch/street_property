@@ -22,7 +22,7 @@ const ICONS = {
 export function tabs() {
   return [
     { id: 'explore', text: 'Explore', href: '#/' },
-    { id: 'map', text: 'Map', href: null },
+    { id: 'map', text: 'Map', href: '#/map' },
     { id: 'saved', text: 'Saved', href: null },
     { id: 'enquiries', text: 'Enquiries', href: null },
     { id: 'profile', text: 'Profile', href: '#/profile' },

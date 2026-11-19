@@ -14,6 +14,7 @@
 //   #/review                 the admins' review queue
 //   #/review/<id>            check one listing
 //   #/filters                Explore's filters (anyone)
+//   #/map                    live listings on a map (anyone)
 //   #/place/<id>             a live listing (anyone)
 
 import { isUuid } from './listings/rules.js';
@@ -21,7 +22,7 @@ import { isUuid } from './listings/rules.js';
 const EXPLORE = { screen: 'explore' };
 
 /** Screens whose address is just their name, like "#/signin". */
-const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters'];
+const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters', 'map'];
 
 /** Screens that only a signed-in person may open. */
 export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing'];
@@ -86,6 +87,7 @@ export function safeNext(hash) {
 
 /** Which bottom-bar tab a screen belongs to, so it can be highlighted. */
 export function tabFor(screen) {
+  if (screen === 'map') return 'map';
   if (['profile', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing'].includes(screen)) return 'profile';
   return 'explore';
 }

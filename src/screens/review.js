@@ -48,11 +48,11 @@ export async function renderReviewListing({ session, navigate, route }) {
   const bar = topBar({ profile, session });
   if (!admin) return adminsOnly(bar);
 
-  const listing = await getListing(route.id);
+  const listing = await getListing(route.id, { private: true });
   if (!listing) {
     return [bar, el('h1', { class: 'title', text: 'Listing not found' }), el('a', { href: '#/review', class: 'button button--quiet', text: 'Back to the queue' }), tabBar('profile')];
   }
-  const [photos, clips] = await Promise.all([listPhotos(listing.id), listClips(listing.id)]);
+  const [photos, clips] = await Promise.all([listPhotos(listing.id), listClips(listing.id, { places: true })]);
   const rooms = tourRooms(listing);
   const roomName = (id) => rooms.find((room) => room.id === id)?.name ?? id.replace('_', ' ');
   const distances = clipDistances(clips);

@@ -53,3 +53,17 @@ export async function countListings(filters) {
   await seed();
   return run(filters, 0, 1).found.length;
 }
+
+export async function searchArea(filters, bounds) {
+  await seed();
+  const { found } = run({ ...filters, text: '' }, 0, 50);
+  const inside = found
+    .map((listing) => ({ ...listing, approx_lat: Math.round(listing.filmed_lat * 1000) / 1000, approx_lng: Math.round(listing.filmed_lng * 1000) / 1000 }))
+    .filter((l) => l.approx_lat >= bounds.south && l.approx_lat <= bounds.north && l.approx_lng >= bounds.west && l.approx_lng <= bounds.east);
+  const items = inside.slice(0, 50).map((listing) => {
+    const photos = db.photos.filter((photo) => photo.listing_id === listing.id).sort((a, b) => a.position - b.position);
+    const clips = db.clips.filter((clip) => clip.listing_id === listing.id);
+    return { ...listing, coverUrl: photos[0]?.url ?? null, tourUrl: null, clip_count: clips.length, tour_seconds: clips.reduce((sum, clip) => sum + Number(clip.seconds), 0) };
+  });
+  return { items, total: inside.length };
+}

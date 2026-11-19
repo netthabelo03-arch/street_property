@@ -22,7 +22,7 @@ export async function renderListDetails({ session, navigate, route }) {
   let listing = null;
   let photos = [];
   if (route.id) {
-    listing = await getListing(route.id);
+    listing = await getListing(route.id, { private: true });
     if (!listing || listing.owner_id !== session.user.id) return notFound(bar, tabBar('profile'));
     if (!isEditable(listing.status)) {
       return [

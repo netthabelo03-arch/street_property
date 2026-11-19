@@ -37,7 +37,7 @@ export async function renderListSend({ session, navigate, route }) {
   const bar = topBar({ profile, session });
   if (!canList(profile?.role)) return notALister(bar, tabBar('profile'));
 
-  const listing = await getListing(route.id);
+  const listing = await getListing(route.id, { private: true });
   if (!listing || listing.owner_id !== session.user.id) return notFound(bar, tabBar('profile'));
   const [photos, clips] = await Promise.all([listPhotos(listing.id), listClips(listing.id)]);
   const message = messageBox();

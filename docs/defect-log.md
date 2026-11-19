@@ -7,3 +7,4 @@
 | D-003 | 2026-11-19 | 1 | 1 | Video tour | After Start camera, the camera label still said "Camera off" | Shows "Ready: <room>" | Low | Fixed |
 | D-004 | 2026-11-19 | 1 | 1 | Review | Long distances showed as metres ("17283 m") | "17.3 km" | Low | Fixed |
 | D-005 | 2026-11-19 | 0 | 2 | Explore | The Street Safe card promised checked owners and held deposits, which are not built yet | Says what is true now (checked listings, tours filmed at the address) and what is coming | Medium | Fixed |
+| D-006 | 2026-11-19 | 2 | 3 | Privacy | Anyone could read the full street address and the exact filmed spot of a live listing from the database, even though the screens hid the house number | Only the owner and admins can read them; everyone else gets the street name and a spot rounded to about 100 m | High | Fixed |

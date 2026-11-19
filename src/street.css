@@ -177,3 +177,39 @@ body:not(:has(.tabbar)) .sticky-action { bottom: 16px; }
 .feature-list li { padding: 6px 12px; border-radius: 999px; background: var(--color-surface-raised); font-size: 14px; }
 .tour-player { width: 100%; max-height: 70vh; border-radius: var(--radius-card); background: #000; }
 [role="status"].section__title:empty { display: none; }
+
+/* Map and full-screen tour (Sprint 3) --------------------------------------- */
+.map { height: 58vh; min-height: 320px; border-radius: var(--radius-card); overflow: hidden; background: #1E2329; border: 1px solid var(--color-line); z-index: 0; }
+.map--small { height: 240px; min-height: 0; }
+/* Dark map: the light street tiles turned dark to match the app. Pins are not affected. */
+.map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.85) saturate(0.6); }
+.map .leaflet-container, .map.leaflet-container { background: #1E2329; font: inherit; }
+.map .leaflet-control-attribution { background: rgba(22, 25, 29, 0.8); color: var(--color-text-muted); font-size: 11px; }
+.map .leaflet-control-attribution a { color: var(--color-link); }
+.map .leaflet-bar a { background: var(--color-panel); color: var(--color-text); border-color: var(--color-line); }
+.pin { background: none; border: 0; }
+.pin__label { display: inline-block; transform: translate(-50%, -100%); padding: 4px 9px; border-radius: 999px; background: var(--color-panel); color: var(--color-text); border: 1px solid var(--color-line-strong); font: 700 13px Inter, sans-serif; white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); cursor: pointer; }
+.pin--on .pin__label, .pin:focus .pin__label { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
+.pin--on { z-index: 1000 !important; }
+.map-status { font-size: 14px; color: var(--color-text-soft); }
+.map-picked:empty { display: none; }
+
+body.tour-open { overflow: hidden; }
+.tour-full { position: fixed; inset: 0; z-index: 200; background: #000; color: #fff; }
+.tour-full__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.tour-full__zone { position: absolute; top: 0; bottom: 0; border: 0; background: transparent; cursor: pointer; }
+.tour-full__zone--back { left: 0; width: 33%; }
+.tour-full__zone--next { right: 0; width: 67%; }
+.tour-full__top { position: absolute; left: 0; right: 0; top: 0; padding: calc(10px + env(safe-area-inset-top)) 14px 24px; background: linear-gradient(rgba(0, 0, 0, 0.65), transparent); }
+.tour-full__bars { display: flex; gap: 4px; }
+.tour-full__bar { flex: 1; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.35); overflow: hidden; }
+.tour-full__fill { display: block; height: 100%; width: 0; background: #fff; }
+.tour-full__heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 10px; }
+.tour-full__room { font-weight: 700; font-size: 16px; }
+.tour-full__title { font-size: 13px; color: rgba(255, 255, 255, 0.8); }
+.tour-full__close, .tour-full__pause { position: relative; z-index: 2; width: 44px; height: 44px; border-radius: 999px; border: 0; background: rgba(22, 25, 29, 0.7); color: #fff; font: 600 18px Inter, sans-serif; cursor: pointer; }
+.tour-full__pause { position: absolute; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); }
+.tour-full__end { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; background: rgba(0, 0, 0, 0.75); }
+.tour-full__end[hidden] { display: none; }
+.tour-full__end .button { max-width: 280px; }
+.tour-full__end-title { font-family: var(--font-heading); font-weight: 700; font-size: 22px; }
