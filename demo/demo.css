@@ -1,0 +1,19 @@
+/* Demo only: the bar above the app. */
+.demo-bar { position: relative; z-index: 60; display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 480px; margin: 0 auto; padding: 12px 20px 14px; box-sizing: border-box; background: #0F2E28; border-bottom: 1px solid #24564C; color: var(--color-text); font-size: 14px; }
+.demo-bar__top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.demo-bar__badge { padding: 2px 10px; border-radius: 999px; background: var(--color-gold); color: #16191D; font-weight: 700; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+.demo-bar__note { flex: 1; color: var(--color-text-soft); min-width: 140px; }
+.demo-bar__small { min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #2E6B5F; background: transparent; color: var(--color-text); font: 600 13px Inter, sans-serif; cursor: pointer; }
+.demo-bar__small--accent { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
+.demo-bar__small:disabled { opacity: 0.6; cursor: default; }
+.demo-bar__personas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.demo-bar__persona { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-height: 48px; padding: 6px 10px; border-radius: 12px; border: 1px solid #2E6B5F; background: rgba(22, 25, 29, 0.35); color: var(--color-text); font: inherit; text-align: left; cursor: pointer; }
+.demo-bar__persona[aria-pressed="true"] { border: 2px solid var(--color-link); padding: 5px 9px; background: rgba(21, 127, 106, 0.25); }
+.demo-bar__persona-role { font-weight: 700; font-size: 14px; }
+.demo-bar__persona-who { font-size: 12px; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.demo-bar__helpers { display: flex; flex-wrap: wrap; gap: 8px; }
+.demo-bar__tip { color: var(--color-text-soft); font-size: 13px; }
+.demo-guide { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 4px 0 0 20px; }
+.demo-guide li { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.demo-guide__title { font-weight: 700; }
+.demo-guide__text { color: var(--color-text-soft); font-size: 13px; }
