@@ -17,6 +17,8 @@ import { renderListDetails } from './screens/listdetails.js';
 import { renderListTour } from './screens/listtour.js';
 import { renderListSend } from './screens/listsend.js';
 import { renderReviewQueue, renderReviewListing } from './screens/review.js';
+import { renderFilters } from './screens/filters.js';
+import { renderPlace } from './screens/place.js';
 import { forgetViewer } from './viewer.js';
 
 const SCREENS = {
@@ -35,6 +37,8 @@ const SCREENS = {
   'list-send': renderListSend,
   review: renderReviewQueue,
   'review-listing': renderReviewListing,
+  filters: renderFilters,
+  place: renderPlace,
 };
 
 const root = document.getElementById('app');

@@ -12,6 +12,7 @@ const PERSONAS = [
 ];
 
 const GUIDE = [
+  { persona: 'renter', hash: '#/', title: 'Look around as a renter', text: 'Search "Soweto", switch Rent and Buy, try Filters (2+ beds, backup power) and the Tours chip, then open a place and play its tour.' },
   { persona: 'owner', hash: '#/my-listings', title: 'See your listings', text: 'Lerato has one listing live and one that the checker sent back for changes.' },
   { persona: 'owner', hash: '#/list/new', title: 'List a new place', text: 'Tap "Fill sample details", then "Add 5 sample photos", then Next.' },
   { persona: 'owner', hash: null, title: 'Film the video tour', text: 'Start camera (simulated here), pick a room, Record, then Stop after a few seconds. Film the outside and at least 3 rooms. Tap a filmed room to play it: the code is in the corner.' },
@@ -68,7 +69,7 @@ guideToggle.addEventListener('click', () => {
 });
 const restart = make('button', { type: 'button', class: 'demo-bar__small', text: 'Start again' });
 restart.addEventListener('click', () => {
-  window.location.hash = '#/my-listings';
+  window.location.hash = '#/';
   window.location.reload();
 });
 
@@ -153,4 +154,4 @@ drawPersonas();
 drawHelpers();
 window.addEventListener('hashchange', () => setTimeout(() => { drawPersonas(); drawHelpers(); }, 0));
 new MutationObserver(() => { drawPersonas(); drawHelpers(); }).observe(document.getElementById('app'), { childList: true });
-if (!window.location.hash || window.location.hash === '#/' || window.location.hash === '#') window.location.hash = '#/my-listings';
+if (!window.location.hash || window.location.hash === '#') window.location.hash = '#/';

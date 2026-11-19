@@ -16,8 +16,8 @@ test('the tab bar has the five tabs of the design; only Explore and Profile work
   assert.deepEqual(tabs().filter((tab) => tab.href).map((tab) => tab.id), ['explore', 'profile']);
 });
 
-test('Explore switches between renting and buying', () => {
-  assert.deepEqual(Object.keys(MODES), ['rent', 'buy']);
-  assert.equal(MODES.rent.heading, 'Places to rent near you');
-  assert.equal(MODES.buy.heading, 'Homes for sale near you');
+test('Explore switches between renting and buying; Buy searches listings for sale', () => {
+  assert.deepEqual(Object.keys(MODES), ['rent', 'sell'], 'the same ids as a listing\'s mode');
+  assert.equal(MODES.rent.label, 'Rent');
+  assert.equal(MODES.sell.label, 'Buy');
 });

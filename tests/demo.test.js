@@ -10,6 +10,7 @@ test('the demo stands in for every function the screens use', () => {
     ['../src/listings/api.js', '../demo/listings-api.js'],
     ['../src/auth/api.js', '../demo/auth-api.js'],
     ['../src/media/recorder.js', '../demo/recorder.js'],
+    ['../src/explore/api.js', '../demo/explore-api.js'],
   ];
   for (const [real, demo] of pairs) {
     const missing = exportsOf(read(real)).filter((name) => !exportsOf(read(demo)).includes(name));
@@ -17,13 +18,14 @@ test('the demo stands in for every function the screens use', () => {
   }
 });
 
-test('the demo page swaps exactly those three files and loads the real app', () => {
+test('the demo page swaps exactly those four files and loads the real app', () => {
   const html = read('../demo.html');
   const map = JSON.parse(html.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]);
   assert.deepEqual(map.imports, {
     './src/auth/api.js': './demo/auth-api.js',
     './src/listings/api.js': './demo/listings-api.js',
     './src/media/recorder.js': './demo/recorder.js',
+    './src/explore/api.js': './demo/explore-api.js',
   });
   assert.ok(html.indexOf('type="importmap"') < html.indexOf('type="module"'), 'the import map comes before any module');
   assert.match(html, /<script type="module" src="src\/app\.js"><\/script>/);

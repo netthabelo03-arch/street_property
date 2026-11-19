@@ -13,13 +13,15 @@
 //   #/list/<id>/send         check and send for review (step 3)
 //   #/review                 the admins' review queue
 //   #/review/<id>            check one listing
+//   #/filters                Explore's filters (anyone)
+//   #/place/<id>             a live listing (anyone)
 
 import { isUuid } from './listings/rules.js';
 
 const EXPLORE = { screen: 'explore' };
 
 /** Screens whose address is just their name, like "#/signin". */
-const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review'];
+const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters'];
 
 /** Screens that only a signed-in person may open. */
 export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing'];
@@ -41,6 +43,7 @@ export function parseRoute(hash) {
     if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'send') return { screen: 'list-send', id: parts[1].toLowerCase() };
   }
   if (parts[0] === 'review' && parts.length === 2 && isUuid(parts[1])) return { screen: 'review-listing', id: parts[1].toLowerCase() };
+  if (parts[0] === 'place' && parts.length === 2 && isUuid(parts[1])) return { screen: 'place', id: parts[1].toLowerCase() };
   // Anything unknown falls back to Explore instead of a blank page.
   return EXPLORE;
 }
@@ -64,6 +67,7 @@ export function hashFor(route) {
     case 'list-tour': return `#/list/${route.id}/tour`;
     case 'list-send': return `#/list/${route.id}/send`;
     case 'review-listing': return `#/review/${route.id}`;
+    case 'place': return `#/place/${route.id}`;
     default: return `#/${route.screen}`;
   }
 }

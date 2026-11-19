@@ -130,3 +130,49 @@ a.listing-row:hover { border-color: var(--color-line-strong); }
 .review-clip__title { font-weight: 700; }
 .review-clip__facts { font-size: 14px; color: var(--color-text-muted); }
 .review-clip__warning { font-size: 14px; font-weight: 600; color: var(--color-danger); }
+
+/* Explore and filters (Sprint 2) -------------------------------------------- */
+.explore-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.chip-row { display: flex; gap: 8px; overflow-x: auto; margin: 0 -20px; padding: 2px 20px 4px; scrollbar-width: none; }
+.chip-row::-webkit-scrollbar { display: none; }
+.chip-button { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-line-strong); background: var(--color-panel); color: var(--color-text); font: 600 14px Inter, sans-serif; text-decoration: none; cursor: pointer; white-space: nowrap; }
+.chip-button--quiet { font-weight: 500; color: var(--color-text-soft); }
+.chip-button--on { border-color: var(--color-link); background: var(--color-success-bg); color: var(--color-success-text); }
+.chip-button svg { flex: none; }
+
+.place-list { display: flex; flex-direction: column; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.place-card { display: flex; flex-direction: column; border-radius: var(--radius-card); overflow: hidden; background: var(--color-panel); border: 1px solid var(--color-line); color: var(--color-text); text-decoration: none; }
+.place-card:hover { border-color: var(--color-line-strong); }
+.place-card__media { position: relative; aspect-ratio: 4 / 3; background: var(--color-surface-raised); }
+.place-card__image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.place-card__badges { position: absolute; left: 10px; right: 10px; top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.place-card__badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(22, 25, 29, 0.82); color: var(--color-text); }
+.place-card__badge--good { background: rgba(15, 46, 40, 0.9); color: var(--color-success-text); }
+.place-card__body { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 16px; }
+.place-card__price { font-family: var(--font-heading); font-weight: 700; font-size: 22px; color: var(--color-text); }
+.place-card__per { color: var(--color-text-muted); font-size: 14px; }
+.place-card__title { font-weight: 600; font-size: 16px; }
+.place-card__where { font-size: 14px; color: var(--color-text-soft); }
+.place-card__facts { font-size: 13px; color: var(--color-text-muted); }
+.explore-status:empty { display: none; }
+.explore-status { display: flex; flex-direction: column; gap: 12px; }
+
+.two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.check--tall { min-height: 60px; padding: 10px 14px; }
+.check__text { display: flex; flex-direction: column; }
+.check__label { font-weight: 600; }
+.check__hint { font-size: 13px; color: var(--color-text-muted); }
+.sticky-action { position: sticky; bottom: 84px; z-index: 40; padding-top: 8px; }
+body:not(:has(.tabbar)) .sticky-action { bottom: 16px; }
+
+/* A live listing */
+.gallery { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -20px; padding: 0 20px; list-style: none; scrollbar-width: none; }
+.gallery::-webkit-scrollbar { display: none; }
+.gallery__item { position: relative; flex: 0 0 88%; scroll-snap-align: center; aspect-ratio: 4 / 3; border-radius: var(--radius-card); overflow: hidden; background: var(--color-surface-raised); }
+.gallery__image { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery__count { position: absolute; right: 10px; bottom: 10px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(22, 25, 29, 0.8); }
+.place-price { font-family: var(--font-heading); font-weight: 700; font-size: 26px; color: var(--color-link); }
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.feature-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.feature-list li { padding: 6px 12px; border-radius: 999px; background: var(--color-surface-raised); font-size: 14px; }
+.tour-player { width: 100%; max-height: 70vh; border-radius: var(--radius-card); background: #000; }

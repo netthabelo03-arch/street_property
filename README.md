@@ -6,7 +6,19 @@ Phone-first web app: plain HTML, CSS and JavaScript (no build step), Supabase fo
 
 Live: https://netthabelo03-arch.github.io/street_property/
 
-## Sprint 1 (this version): listings and video tours
+## Sprint 2 (this version): Explore and filters
+
+- **Explore** shows live listings, newest checked first, 20 at a time with Show more.
+  - **Each card:** cover photo, "Filmed on site", tour length, price, title, place and key facts.
+  - **Rent / Buy**, and search by street, suburb, township or city. Every word must match.
+  - **Tours:** each card plays its outside clip, silently, while it is on screen.
+- **Filters:** price range, bedrooms, type of place, and must-haves (backup power, water, prepaid electricity, pets, parking). The button shows how many places match. Filters are kept while you browse and cleared when the tab closes.
+- **Listing page** (`#/place/<id>`): swipeable photos, facts, must-haves, and the video tour, which plays room after room. Sprint 3 adds the map; Sprint 4 adds Ask the owner.
+- **Privacy:** the public sees the street without the house number.
+- **Database:** `supabase/003_search.sql` adds `search_listings()`. It runs with the caller's own rights, so only live listings ever show. The dry run (`supabase/tests/003_dryrun.sql`) runs 12 checks.
+- **Demo** (`demo.html`): eleven sample places, and it starts as a renter on Explore.
+
+## Sprint 1: listings and video tours
 
 - **List a property** (owners and agents), in 3 steps:
   1. **Details and photos:** rent or sell, type of place, address, price, deposit, rooms, what the place has, about. 5 to 12 photos, shrunk on the phone to 1600 px before upload.
@@ -36,7 +48,7 @@ Limits to watch:
 
 ## Set up
 
-1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`.
+1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`.
 2. **Connect the app.** In `src/config.js`, fill in `SUPABASE_URL` (Project Settings, Data API) and `SUPABASE_PUBLISHABLE_KEY` (Project Settings, API Keys, the `sb_publishable_…` key). Never put a secret key in the app.
 3. **Sign-in links.** In Supabase, Authentication, URL Configuration: set Site URL to the app's address and add it under Redirect URLs.
 4. **Admins.** After signing up, add yourself in SQL Editor: `insert into public.admins (user_id) values ('<your user id>');`
