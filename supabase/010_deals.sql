@@ -252,7 +252,7 @@ begin
   select * into place from public.listings l where l.id = d.listing_id;
   select coalesce(nullif(btrim(p.full_name), ''), 'The Landlord') into owner_name from public.profiles p where p.id = d.owner_id;
   select coalesce(nullif(btrim(p.full_name), ''), 'The Tenant') into renter_name from public.profiles p where p.id = d.renter_id;
-  end_date := (d.start_date + make_interval(months => d.lease_months)) - 1;
+  end_date := (d.start_date + make_interval(months => d.lease_months))::date - 1;
   return concat_ws(chr(10),
     'RESIDENTIAL LEASE AGREEMENT',
     '(Street Property draft template, to be reviewed by a lawyer before use.)',
