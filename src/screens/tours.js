@@ -114,6 +114,7 @@ export async function renderTours({ session, navigate }) {
     const clip = clips[roomIndex];
     if (!clip) return;
     room.textContent = `${roomLabel(places[placeIndex], clip.room)} · ${roomIndex + 1} of ${clips.length}`;
+    delete video.dataset.held;
     video.src = clip.url;
     video.play().catch(() => {});
     drawBars();
@@ -164,6 +165,7 @@ export async function renderTours({ session, navigate }) {
   }
 
   function showEnd() {
+    video.dataset.held = 'yes';
     video.pause();
     empty.replaceChildren(
       el('p', { class: 'tour-full__end-title', text: `That's all ${total} place${total === 1 ? '' : 's'}` }),
@@ -194,6 +196,10 @@ export async function renderTours({ session, navigate }) {
   }
 
   video.addEventListener('timeupdate', drawBars);
+  // Some phones ignore play() while a clip is still loading: try again once it can play.
+  video.addEventListener('canplay', () => {
+    if (video.paused && !video.dataset.held) video.play().catch(() => {});
+  });
   video.addEventListener('ended', nextRoom);
   forward.addEventListener('click', nextRoom);
   back.addEventListener('click', previousRoom);
@@ -276,6 +282,7 @@ export async function renderTours({ session, navigate }) {
   });
 
   function cleanUp() {
+    video.dataset.held = 'yes';
     video.pause();
     video.removeAttribute('src');
     video.load();

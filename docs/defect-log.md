@@ -9,3 +9,4 @@
 | D-005 | 2026-11-19 | 0 | 2 | Explore | The Street Safe card promised checked owners and held deposits, which are not built yet | Says what is true now (checked listings, tours filmed at the address) and what is coming | Medium | Fixed |
 | D-006 | 2026-11-19 | 2 | 3 | Privacy | Anyone could read the full street address and the exact filmed spot of a live listing from the database, even though the screens hid the house number | Only the owner and admins can read them; everyone else gets the street name and a spot rounded to about 100 m | High | Fixed |
 | D-007 | 2026-11-19 | 0 | 4 | Log in | The "come back after logging in" memory used a name left over from plusespot (event-cal.next) | Named street-property.next | Low | Fixed |
+| D-008 | 2026-11-19 | 5 | 5 | Tours | A clip could stay paused on its first frame when the phone ignored play() while it was loading | Play is tried again as soon as the clip can play (tour feed and full-screen tour) | Medium | Fixed |

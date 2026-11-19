@@ -55,6 +55,7 @@ export function openTour({ clips, roomName, title, start = 0 }) {
     end.hidden = true;
     const clip = playable[index];
     room.textContent = `${roomName(clip.room)} · ${index + 1} of ${playable.length}`;
+    delete video.dataset.held;
     video.src = clip.url;
     video.play().catch(() => {});
     pause.textContent = 'Ⅱ';
@@ -64,6 +65,7 @@ export function openTour({ clips, roomName, title, start = 0 }) {
 
   function finish() {
     finished = true;
+    video.dataset.held = 'yes';
     drawBars();
     const again = el('button', { type: 'button', class: 'button button--primary', text: 'Watch again' });
     again.addEventListener('click', () => show(0));
@@ -86,16 +88,22 @@ export function openTour({ clips, roomName, title, start = 0 }) {
   }
 
   video.addEventListener('timeupdate', drawBars);
+  // Some phones ignore play() while a clip is still loading: try again once it can play.
+  video.addEventListener('canplay', () => {
+    if (video.paused && !video.dataset.held) video.play().catch(() => {});
+  });
   video.addEventListener('ended', forward);
   next.addEventListener('click', forward);
   back.addEventListener('click', backward);
   pause.addEventListener('click', () => {
     if (finished) return;
     if (video.paused) {
+      delete video.dataset.held;
       video.play().catch(() => {});
       pause.textContent = 'Ⅱ';
       pause.setAttribute('aria-label', 'Pause');
     } else {
+      video.dataset.held = 'yes';
       video.pause();
       pause.textContent = '▶';
       pause.setAttribute('aria-label', 'Play');
