@@ -5,6 +5,7 @@ import { signOut } from './auth/api.js';
 import { friendlyAuthError } from './auth/errors.js';
 import { findRole } from './roles.js';
 import { el, icon, brand, whileBusy } from './dom.js';
+import { unreadTotal } from './enquiries/api.js';
 
 const ICONS = {
   explore: '<circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path>',
@@ -24,7 +25,7 @@ export function tabs() {
     { id: 'explore', text: 'Explore', href: '#/' },
     { id: 'map', text: 'Map', href: '#/map' },
     { id: 'saved', text: 'Saved', href: null },
-    { id: 'enquiries', text: 'Enquiries', href: null },
+    { id: 'enquiries', text: 'Enquiries', href: '#/enquiries' },
     { id: 'profile', text: 'Profile', href: '#/profile' },
   ];
 }
@@ -74,15 +75,26 @@ export function topBar({ profile, session }) {
   ]);
 }
 
-/** The tab bar at the bottom, with the current tab marked. */
+/** The tab bar at the bottom, with the current tab marked and unread messages counted. */
 export function tabBar(current) {
-  return el('nav', { class: 'tabbar', 'aria-label': 'Main' }, tabs().map((tab) => {
+  const bar = el('nav', { class: 'tabbar', 'aria-label': 'Main' }, tabs().map((tab) => {
     const content = [icon(ICONS[tab.id], 24), el('span', { text: tab.text })];
     if (!tab.href) {
       return el('span', { class: 'tabbar__tab tabbar__tab--soon', title: 'Coming soon', 'aria-disabled': 'true' }, content);
     }
-    const link = el('a', { href: tab.href, class: 'tabbar__tab' }, content);
+    const link = el('a', { href: tab.href, class: 'tabbar__tab', 'data-tab': tab.id }, content);
     if (tab.id === current) link.setAttribute('aria-current', 'page');
     return link;
   }));
+  refreshUnread(bar);
+  return bar;
+}
+
+/** Show the number of unread messages on the Enquiries tab. */
+export async function refreshUnread(bar = document.querySelector('.tabbar')) {
+  const count = await unreadTotal();
+  const tab = bar?.querySelector('[data-tab="enquiries"]');
+  if (!tab) return;
+  tab.querySelector('.tabbar__badge')?.remove();
+  if (count > 0) tab.append(el('span', { class: 'tabbar__badge', 'aria-label': `${count} unread`, text: count > 9 ? '9+' : String(count) }));
 }

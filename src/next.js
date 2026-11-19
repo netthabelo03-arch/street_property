@@ -4,7 +4,7 @@
 
 import { safeNext } from './router.js';
 
-const KEY = 'event-cal.next';
+const KEY = 'street-property.next';
 
 /** How long a remembered destination stays valid. */
 export const NEXT_LIFETIME_MS = 30 * 60 * 1000;

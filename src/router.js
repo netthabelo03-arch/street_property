@@ -15,6 +15,8 @@
 //   #/review/<id>            check one listing
 //   #/filters                Explore's filters (anyone)
 //   #/map                    live listings on a map (anyone)
+//   #/enquiries              viewings and conversations
+//   #/enquiries/<id>         one conversation
 //   #/place/<id>             a live listing (anyone)
 
 import { isUuid } from './listings/rules.js';
@@ -22,10 +24,10 @@ import { isUuid } from './listings/rules.js';
 const EXPLORE = { screen: 'explore' };
 
 /** Screens whose address is just their name, like "#/signin". */
-const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters', 'map'];
+const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters', 'map', 'enquiries'];
 
 /** Screens that only a signed-in person may open. */
-export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing'];
+export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing', 'enquiries', 'enquiry'];
 
 /** Screens that make no sense once signed in. */
 export const GUEST_SCREENS = ['signup', 'signin', 'forgot'];
@@ -44,6 +46,7 @@ export function parseRoute(hash) {
     if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'send') return { screen: 'list-send', id: parts[1].toLowerCase() };
   }
   if (parts[0] === 'review' && parts.length === 2 && isUuid(parts[1])) return { screen: 'review-listing', id: parts[1].toLowerCase() };
+  if (parts[0] === 'enquiries' && parts.length === 2 && isUuid(parts[1])) return { screen: 'enquiry', id: parts[1].toLowerCase() };
   if (parts[0] === 'place' && parts.length === 2 && isUuid(parts[1])) return { screen: 'place', id: parts[1].toLowerCase() };
   // Anything unknown falls back to Explore instead of a blank page.
   return EXPLORE;
@@ -69,6 +72,7 @@ export function hashFor(route) {
     case 'list-send': return `#/list/${route.id}/send`;
     case 'review-listing': return `#/review/${route.id}`;
     case 'place': return `#/place/${route.id}`;
+    case 'enquiry': return `#/enquiries/${route.id}`;
     default: return `#/${route.screen}`;
   }
 }
@@ -81,13 +85,15 @@ export function hashFor(route) {
 export function safeNext(hash) {
   if (typeof hash !== 'string') return null;
   const route = parseRoute(hash);
-  if (!PROTECTED_SCREENS.includes(route.screen) || route.screen === 'new-password') return null;
+  const allowed = PROTECTED_SCREENS.includes(route.screen) || route.screen === 'place';
+  if (!allowed || route.screen === 'new-password') return null;
   return hashFor(route) === hash ? hash : null;
 }
 
 /** Which bottom-bar tab a screen belongs to, so it can be highlighted. */
 export function tabFor(screen) {
   if (screen === 'map') return 'map';
+  if (screen === 'enquiries' || screen === 'enquiry') return 'enquiries';
   if (['profile', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing'].includes(screen)) return 'profile';
   return 'explore';
 }

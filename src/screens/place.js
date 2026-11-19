@@ -1,6 +1,6 @@
 // A live listing as renters and buyers see it: photos, price, the facts,
 // the video tour (room by room, or full screen) and the area on a map.
-// (Sprint 4 adds Ask the owner and booking a viewing.)
+// Signed-in visitors can ask the owner (or agent) and then book a viewing.
 
 import { loadViewer } from '../viewer.js';
 import { getListing, listPhotos, listClips } from '../listings/api.js';
@@ -8,8 +8,12 @@ import { FEATURES, listingTitle, priceLine, formatRands, formatSeconds, tourRoom
 import { publicPlace, cardFacts } from '../explore/filters.js';
 import { loadLeaflet, makeMap } from '../map/leaflet.js';
 import { openTour } from './tourplayer.js';
+import { startEnquiry, myEnquiryFor } from '../enquiries/api.js';
+import { firstMessage, MESSAGE_MAX } from '../enquiries/rules.js';
+import { friendlyListingError } from '../listings/errors.js';
+import { saveNext } from '../next.js';
 import { topBar, tabBar } from '../shell.js';
-import { el } from '../dom.js';
+import { el, messageBox, whileBusy } from '../dom.js';
 
 export async function renderPlace({ session, route }) {
   const { profile } = await loadViewer(session);
@@ -125,10 +129,56 @@ export async function renderPlace({ session, route }) {
       el('div', { class: 'choices', role: 'group', 'aria-label': 'Rooms' }, roomButtons),
     ])] : []),
     ...area,
-    el('div', { class: 'note' }, [
-      el('p', { class: 'checklist__title', text: 'Interested?' }),
-      el('p', { text: 'Asking the owner and booking a viewing open soon. Never pay a deposit before you have seen the place and signed a lease.' }),
-    ]),
+    ...(await askSection({ session, listing, mine })),
     ...tabs,
   ];
+}
+
+/** "Ask the owner": a first message, or the way back to the conversation already started. */
+async function askSection({ session, listing, mine }) {
+  if (mine) return [];
+  const who = listing.lister === 'agent' ? 'the agent' : 'the owner';
+  const safety = el('p', { class: 'field__hint', text: 'Never pay a deposit or rent before you have viewed the place and signed a lease.' });
+  const heading = el('h2', { class: 'section__title', text: `Interested? Ask ${who}` });
+  if (!session) {
+    const login = el('a', { href: '#/signin', class: 'button button--primary', text: `Log in to ask ${who}` });
+    login.addEventListener('click', () => saveNext(`#/place/${listing.id}`));
+    return [el('section', { class: 'section ask' }, [heading, el('p', { class: 'lead', text: 'Ask questions and book a viewing in the app. Your number stays private until you choose to share it.' }), login, safety])];
+  }
+  let existing = null;
+  try {
+    existing = await myEnquiryFor(listing.id, session.user.id);
+  } catch {
+    existing = null;
+  }
+  if (existing) {
+    return [el('section', { class: 'section ask' }, [
+      heading,
+      el('a', { href: `#/enquiries/${existing}`, class: 'button button--primary', text: 'Open your conversation' }),
+      safety,
+    ])];
+  }
+  const box = el('textarea', { id: 'ask', class: 'input input--area', rows: '3', maxlength: String(MESSAGE_MAX) });
+  box.value = firstMessage(listing.mode);
+  const send = el('button', { type: 'submit', class: 'button button--primary', text: `Send to ${who}` });
+  const problem = messageBox();
+  const form = el('form', { class: 'stack', novalidate: '' }, [
+    el('label', { for: 'ask', class: 'field__label', text: 'Your message' }),
+    box,
+    problem.node,
+    send,
+  ]);
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    problem.clear();
+    whileBusy(send, 'Sending…', async () => {
+      try {
+        const id = await startEnquiry(listing.id, box.value);
+        window.location.hash = `#/enquiries/${id}`;
+      } catch (error) {
+        problem.show(friendlyListingError(error));
+      }
+    });
+  });
+  return [el('section', { class: 'section ask' }, [heading, form, el('p', { class: 'field__hint', text: 'You can suggest a viewing time in the conversation. Your number stays private until you choose to share it.' }), safety])];
 }

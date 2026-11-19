@@ -7,6 +7,7 @@ import { checkOptionalName } from '../auth/validate.js';
 import { friendlyAuthError } from '../auth/errors.js';
 import { topBar, tabBar } from '../shell.js';
 import { el, field, messageBox, whileBusy } from '../dom.js';
+import { normalizePhone, showPhone } from '../enquiries/rules.js';
 
 export async function renderProfile({ session }) {
   const message = messageBox();
@@ -40,9 +41,21 @@ export async function renderProfile({ session }) {
   updateRole();
 
   const name = field({ id: 'full-name', label: 'Your name (optional)', autocomplete: 'name', value: profile.full_name });
+  const phone = field({ id: 'phone', label: 'Cell number (optional)', type: 'tel', autocomplete: 'tel', value: profile.phone ? showPhone(profile.phone) : '' });
+  const share = el('input', { type: 'checkbox', id: 'share-whatsapp', class: 'check__box' });
+  share.checked = profile.share_whatsapp === true;
+  const shareRow = el('label', { class: 'check check--tall', for: 'share-whatsapp' }, [
+    share,
+    el('span', { class: 'check__text' }, [
+      el('span', { class: 'check__label', text: 'Share it on WhatsApp after a confirmed viewing' }),
+      el('span', { class: 'check__hint', text: 'Only the person whose viewing is confirmed sees it, and only until two days after the viewing. Never shown on listings.' }),
+    ]),
+  ]);
   const save = el('button', { type: 'submit', class: 'button button--primary', text: 'Save changes' });
   const form = el('form', { class: 'form', novalidate: '' }, [
     name.node,
+    phone.node,
+    shareRow,
     el('div', { class: 'field' }, [
       el('span', { class: 'field__label', id: 'role-label', text: 'I use Street Property as' }),
       el('div', { class: 'role-options', role: 'group', 'aria-labelledby': 'role-label' }, options.map(({ button }) => button)),
@@ -56,10 +69,16 @@ export async function renderProfile({ session }) {
     message.clear();
     const nameError = checkOptionalName(name.input.value);
     name.setError(nameError);
-    if (nameError) return;
+    const phoneText = phone.input.value.trim();
+    const cleanPhone = phoneText ? normalizePhone(phoneText) : null;
+    const phoneError = phoneText && !cleanPhone ? 'Enter a South African cell number, like 082 123 4567.' : null;
+    phone.setError(phoneError);
+    if (nameError || phoneError) return;
     await whileBusy(save, 'Saving…', async () => {
       try {
-        const saved = await updateProfile(session.user.id, { fullName: name.input.value, role });
+        const saved = await updateProfile(session.user.id, { fullName: name.input.value, role, phone: cleanPhone, shareWhatsapp: share.checked });
+        phone.input.value = saved.phone ? showPhone(saved.phone) : '';
+        share.checked = saved.share_whatsapp === true;
         name.input.value = saved.full_name;
         role = saved.role;
         updateRole();

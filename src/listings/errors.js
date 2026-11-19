@@ -17,6 +17,21 @@ const BY_HINT = {
   not_in_review: 'This listing is no longer waiting for review. Someone may have checked it already.',
   note_needed: 'Say what the owner needs to change.',
   note_too_long: 'Keep the note under 500 characters.',
+  // Conversations and viewings (Sprint 4)
+  not_signed_in: 'Log in first.',
+  listing_not_live: 'This place is no longer listed.',
+  own_listing: 'This is your own listing.',
+  too_many_enquiries: 'You have asked about many places today. Try again tomorrow.',
+  message_empty: 'Write a message first.',
+  message_too_long: 'Keep messages under 1000 characters.',
+  too_many_messages: 'You are sending messages very fast. Wait a few minutes.',
+  enquiry_not_found: 'This conversation was not found.',
+  viewing_time: 'Choose a time from an hour from now up to 60 days ahead.',
+  viewing_hours: 'Viewings are between 07:00 and 19:00.',
+  viewing_not_found: 'This viewing was not found.',
+  viewing_not_waiting: 'This viewing has changed. Pull down or reopen the conversation to see the latest.',
+  own_proposal: 'The other person needs to answer your suggested time.',
+  report_reason: 'Say in a few words what went wrong.',
 };
 
 // Problems from the phone itself (photos, camera, location).

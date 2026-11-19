@@ -77,25 +77,25 @@ export async function setNewPassword(password) {
   if (error) throw error;
 }
 
-/** @returns {Promise<{ id: string, full_name: string, role: string } | null>} */
+/** @returns {Promise<{ id: string, full_name: string, role: string, phone: string | null, share_whatsapp: boolean } | null>} */
 export async function getProfile(userId) {
   const client = await getClient();
   const { data, error } = await client
     .from('profiles')
-    .select('id, full_name, role')
+    .select('id, full_name, role, phone, share_whatsapp')
     .eq('id', userId)
     .maybeSingle();
   if (error) throw error;
   return data;
 }
 
-export async function updateProfile(userId, { fullName, role }) {
+export async function updateProfile(userId, { fullName, role, phone = null, shareWhatsapp = false }) {
   const client = await getClient();
   const { data, error } = await client
     .from('profiles')
-    .update({ full_name: String(fullName).trim(), role })
+    .update({ full_name: String(fullName).trim(), role, phone, share_whatsapp: Boolean(shareWhatsapp && phone) })
     .eq('id', userId)
-    .select('id, full_name, role')
+    .select('id, full_name, role, phone, share_whatsapp')
     .single();
   if (error) throw error;
   return data;

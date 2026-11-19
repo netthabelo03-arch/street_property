@@ -20,6 +20,8 @@ import { renderReviewQueue, renderReviewListing } from './screens/review.js';
 import { renderFilters } from './screens/filters.js';
 import { renderPlace } from './screens/place.js';
 import { renderMap } from './screens/map.js';
+import { renderEnquiries } from './screens/enquiries.js';
+import { renderConversation } from './screens/conversation.js';
 import { forgetViewer } from './viewer.js';
 
 const SCREENS = {
@@ -41,6 +43,8 @@ const SCREENS = {
   filters: renderFilters,
   place: renderPlace,
   map: renderMap,
+  enquiries: renderEnquiries,
+  enquiry: renderConversation,
 };
 
 const root = document.getElementById('app');

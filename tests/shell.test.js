@@ -11,9 +11,9 @@ test('the top bar shows the first name, else the email name, else Account', () =
   assert.equal(displayName(null, null), 'Account');
 });
 
-test('the tab bar has the five tabs of the design; Explore, Map and Profile work', () => {
+test('the tab bar has the five tabs of the design; all but Saved work', () => {
   assert.deepEqual(tabs().map((tab) => tab.text), ['Explore', 'Map', 'Saved', 'Enquiries', 'Profile']);
-  assert.deepEqual(tabs().filter((tab) => tab.href).map((tab) => tab.id), ['explore', 'map', 'profile']);
+  assert.deepEqual(tabs().filter((tab) => tab.href).map((tab) => tab.id), ['explore', 'map', 'enquiries', 'profile']);
 });
 
 test('Explore switches between renting and buying; Buy searches listings for sale', () => {
