@@ -32,7 +32,7 @@ test('S2: a fresh search is everything to rent, no filters', () => {
   assert.equal(activeCount(filters), 0);
   assert.deepEqual(toSearchArgs(filters), {
     p_mode: 'rent', p_text: null, p_min_price: null, p_max_price: null, p_min_beds: null,
-    p_kinds: null, p_features: null, p_parking: false, p_limit: PAGE_SIZE, p_offset: 0,
+    p_kinds: null, p_features: null, p_parking: false, p_verified: false, p_limit: PAGE_SIZE, p_offset: 0,
   });
 });
 

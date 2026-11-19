@@ -5,7 +5,7 @@ import { getClient } from '../auth/client.js';
 
 // Everyone may read these. The full street and the exact spot where the tour
 // was filmed are private: owners and admins get them from listing_private().
-const COLUMNS = 'id, owner_id, lister, mode, kind, street_public, area, city, price_rands, deposit_rands, bedrooms, bathrooms, parking, features, description, available_from, status, review_note, approx_lat, approx_lng, created_at, updated_at, submitted_at, reviewed_at';
+const COLUMNS = 'id, owner_id, lister, mode, kind, street_public, area, city, price_rands, deposit_rands, bedrooms, bathrooms, parking, features, description, available_from, status, review_note, approx_lat, approx_lng, verified_at, created_at, updated_at, submitted_at, reviewed_at';
 const PHOTO_BUCKET = 'listing-photos';
 const TOUR_BUCKET = 'listing-tours';
 const LINK_SECONDS = 60 * 60;

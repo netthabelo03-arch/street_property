@@ -33,6 +33,14 @@ const BY_HINT = {
   own_proposal: 'The other person needs to answer your suggested time.',
   report_reason: 'Say in a few words what went wrong.',
   too_many_saved: 'You can save up to 200 places. Remove some first.',
+  // Street Verified (Sprint 6)
+  need_id_photos: 'Add a photo of your ID or passport and a selfie.',
+  check_exists: 'This is already being checked or approved.',
+  need_owner_docs: 'Add your title deed or rates account.',
+  need_agent_docs: 'Add your Fidelity Fund Certificate and the owner\u2019s mandate.',
+  bad_doc_path: 'The document could not be saved. Try again.',
+  check_not_waiting: 'This check was already decided.',
+  check_not_found: 'This check was not found.',
 };
 
 // Problems from the phone itself (photos, camera, location).

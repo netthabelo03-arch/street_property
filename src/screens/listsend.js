@@ -11,6 +11,8 @@ import { friendlyListingError } from '../listings/errors.js';
 import { topBar, tabBar } from '../shell.js';
 import { el, messageBox, whileBusy } from '../dom.js';
 import { stepHeader, statusChip, notFound, notALister } from './listing-parts.js';
+import { myVerification } from '../verify/api.js';
+import { badgeLine } from '../verify/rules.js';
 
 /** A button that asks "Tap again to …" before it acts. */
 function confirmButton(text, confirmText, busyText, action, className = 'button button--danger') {
@@ -39,7 +41,7 @@ export async function renderListSend({ session, navigate, route }) {
 
   const listing = await getListing(route.id, { private: true });
   if (!listing || listing.owner_id !== session.user.id) return notFound(bar, tabBar('profile'));
-  const [photos, clips] = await Promise.all([listPhotos(listing.id), listClips(listing.id)]);
+  const [photos, clips, verification] = await Promise.all([listPhotos(listing.id), listClips(listing.id), myVerification(listing.id).catch(() => null)]);
   const message = messageBox();
   const editable = isEditable(listing.status);
   const missing = missingForReview({ photos, clips });
@@ -146,6 +148,10 @@ export async function renderListSend({ session, navigate, route }) {
       clipList,
     ]),
     ...actions,
+    el('a', { href: `#/list/${listing.id}/verify`, class: 'verify-link' }, [
+      el('span', { class: 'verify-link__title', text: listing.verified_at ? 'Street Verified \u2713' : 'Get the Street Verified badge' }),
+      el('span', { class: 'verify-link__line', text: listing.verified_at ? 'Your ID and ownership are checked.' : `${badgeLine(verification)}. Verified places get more serious enquiries.` }),
+    ]),
     el('a', { href: '#/my-listings', class: 'button button--quiet', text: 'Back to my listings' }),
     tabBar('profile'),
   ];

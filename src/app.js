@@ -16,7 +16,8 @@ import { renderMyListings } from './screens/mylistings.js';
 import { renderListDetails } from './screens/listdetails.js';
 import { renderListTour } from './screens/listtour.js';
 import { renderListSend } from './screens/listsend.js';
-import { renderReviewQueue, renderReviewListing } from './screens/review.js';
+import { renderReviewQueue, renderReviewListing, renderReviewCheck } from './screens/review.js';
+import { renderVerify } from './screens/verify.js';
 import { renderFilters } from './screens/filters.js';
 import { renderPlace } from './screens/place.js';
 import { renderMap } from './screens/map.js';
@@ -49,6 +50,8 @@ const SCREENS = {
   enquiry: renderConversation,
   tours: renderTours,
   saved: renderSaved,
+  'list-verify': renderVerify,
+  'review-check': renderReviewCheck,
 };
 
 const root = document.getElementById('app');

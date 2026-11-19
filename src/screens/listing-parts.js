@@ -59,7 +59,10 @@ export function listingSummary(listing, { href, extra = [] } = {}) {
   const body = [
     el('div', { class: 'listing-row__top' }, [
       el('p', { class: 'listing-row__title', text: listingTitle(listing) }),
-      statusChip(listing.status),
+      el('span', { class: 'badge-row' }, [
+        ...(listing.verified_at ? [el('span', { class: 'chip chip--verified', text: 'Verified' })] : []),
+        statusChip(listing.status),
+      ]),
     ]),
     el('p', { class: 'listing-row__price', text: priceLine(listing) }),
     el('p', { class: 'listing-row__place', text: `${listing.street ?? listing.street_public ?? ''}, ${listing.area}, ${listing.city}` }),

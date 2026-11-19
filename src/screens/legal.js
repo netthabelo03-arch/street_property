@@ -32,7 +32,8 @@ export function renderPrivacy() {
     'Listings show the street name and the area, never the house number or the exact spot. The full address is shown to a renter once a viewing is confirmed.',
     'Messages are seen only by the two people in the conversation. If one of you reports a conversation, our team may read it to deal with the report.',
     'Video tours save where each clip was filmed. Only the owner and our checkers can see that.',
-    'Identity and income checks will keep only the result, never your documents.',
+    'For Street Verified, your ID photo, selfie and ownership documents are seen only by our checkers. They are deleted as soon as the check is decided; we keep only the result (approved or not, and why).',
+    'Income checks (coming later) will keep only the result, never your bank statements.',
     'Responsible party and Information Officer: [to be named]',
     'Details: [to be written]',
   ]);

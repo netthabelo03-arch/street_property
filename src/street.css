@@ -284,3 +284,31 @@ body.tour-open { overflow: hidden; }
 .feed .tour-full__zone { bottom: 220px; }
 .heart-button { align-self: flex-start; width: auto; padding: 0 18px; }
 .heart-button--on { color: #F09A86; border-color: #F09A86; }
+
+/* Street Verified (Sprint 6) ------------------------------------------------- */
+.chip--verified { background: #3A2F14; color: var(--color-gold); }
+.place-card__badge--verified { background: rgba(58, 47, 20, 0.92); color: var(--color-gold); }
+.check-list { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.check-card { display: flex; gap: 12px; padding: 16px; border-radius: var(--radius-card); background: var(--color-panel); border: 1px solid var(--color-line); }
+.check-card--done { border-color: #24564C; }
+.check-card--rejected { border-color: var(--color-danger); }
+.check-card__n { flex: none; width: 32px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: var(--color-surface-raised); font-weight: 700; }
+.check-card--done .check-card__n { background: var(--color-accent); color: #fff; }
+.check-card__body { flex: 1; min-width: 0; }
+.check-card__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.check-card__title { font-weight: 700; }
+.check-card__text { font-size: 14px; color: var(--color-text-soft); }
+.file { display: flex; flex-direction: column; gap: 6px; }
+.file__input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.file__button { cursor: pointer; }
+.file__chosen { font-size: 13px; color: var(--color-text-muted); overflow-wrap: anywhere; }
+.badge-preview { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-radius: var(--radius-card); background: var(--color-surface-raised); color: var(--color-text-muted); }
+.badge-preview--earned { background: #3A2F14; color: var(--color-gold); }
+.badge-preview__title { font-weight: 700; color: var(--color-text); }
+.badge-preview--earned .badge-preview__title { color: var(--color-gold); }
+.badge-preview__line { font-size: 14px; }
+.verify-link { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: var(--radius-card); background: #2A2514; border: 1px solid #4A3F1E; color: var(--color-text); text-decoration: none; }
+.verify-link__title { font-weight: 700; color: var(--color-gold); }
+.verify-link__line { font-size: 14px; color: var(--color-text-soft); }
+.doc-list { display: flex; flex-direction: column; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.doc-list__image { width: 100%; border-radius: 12px; background: #000; }

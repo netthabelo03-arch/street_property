@@ -12,6 +12,7 @@ export const MUST_HAVES = [
   { id: 'prepaid', label: 'Prepaid electricity', hint: 'Pay for what you use', feature: 'prepaid' },
   { id: 'pets', label: 'Pet friendly', hint: 'Owner allows pets', feature: 'pets' },
   { id: 'parking', label: 'Parking', hint: 'At least one parking bay', parking: true },
+  { id: 'verified', label: 'Street Verified only', hint: 'Owner\u2019s ID and ownership checked', verified: true },
 ];
 
 export const BED_CHOICES = [
@@ -61,6 +62,7 @@ export function toSearchArgs(filters, page = 0, size = PAGE_SIZE) {
     p_kinds: filters.kinds.length ? filters.kinds : null,
     p_features: features.length ? features : null,
     p_parking: chosen.some((item) => item.parking),
+    p_verified: chosen.some((item) => item.verified),
     p_limit: size,
     p_offset: page * size,
   };

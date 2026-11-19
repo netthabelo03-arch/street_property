@@ -4,6 +4,7 @@
 
 import { loadViewer } from '../viewer.js';
 import { reviewQueue, getListing, listPhotos, listClips, reviewListing } from '../listings/api.js';
+import { verificationQueue, docLinks, decideCheck } from '../verify/api.js';
 import { FEATURES, listingTitle, priceLine, tourRooms, formatSeconds, formatRands, findKind, clipDistances, missingForReview, formatDistance } from '../listings/rules.js';
 import { friendlyListingError } from '../listings/errors.js';
 import { topBar, tabBar } from '../shell.js';
@@ -28,10 +29,24 @@ export async function renderReviewQueue({ session }) {
   const { profile, admin } = await loadViewer(session);
   const bar = topBar({ profile, session });
   if (!admin) return adminsOnly(bar);
-  const waiting = await reviewQueue();
+  const [waiting, checks] = await Promise.all([reviewQueue(), verificationQueue()]);
+  const checkRows = checks.map((item) => el('li', {}, [
+    el('a', { class: 'listing-row', href: `#/review/check/${item.kind}/${item.subject_id}` }, [
+      el('div', { class: 'listing-row__top' }, [
+        el('p', { class: 'listing-row__title', text: item.kind === 'identity' ? `ID: ${item.person_name}` : `Ownership: ${item.street}, ${item.area}` }),
+        el('span', { class: 'chip chip--waiting', text: 'Waiting' }),
+      ]),
+      el('p', { class: 'listing-row__about', text: `${item.kind === 'identity' ? 'ID photo and selfie' : item.lister === 'agent' ? `Agent ${item.person_name}: FFC and mandate` : `Owner ${item.person_name}: deed or rates account`} · sent ${when(item.submitted_at)}` }),
+    ]),
+  ]));
   return [
     bar,
     el('h1', { class: 'title', text: 'Review queue' }),
+    el('section', { class: 'section' }, [
+      el('h2', { class: 'section__title', text: `Street Verified checks (${checks.length})` }),
+      ...(checks.length ? [el('ul', { class: 'listing-list' }, checkRows)] : [el('p', { class: 'lead', text: 'No ID or ownership checks waiting.' })]),
+    ]),
+    el('h2', { class: 'section__title', text: `Listings (${waiting.length})` }),
     el('p', { class: 'lead', text: waiting.length === 0 ? 'Nothing waiting. New listings show here when owners send them.' : `${waiting.length} waiting, oldest first.` }),
     el('ul', { class: 'listing-list' }, waiting.map((listing) => el('li', {}, [
       listingSummary(listing, {
@@ -163,6 +178,78 @@ export async function renderReviewListing({ session, navigate, route }) {
         changes,
       ]),
     ] : [el('p', { class: 'lead', text: 'This listing is not waiting for review.' })]),
+    tabBar('profile'),
+  ];
+}
+
+/** One ID or ownership check: look at the documents, then decide. The documents are deleted after deciding. */
+export async function renderReviewCheck({ session, navigate, route }) {
+  const { profile, admin } = await loadViewer(session);
+  const bar = topBar({ profile, session });
+  if (!admin) return adminsOnly(bar);
+  const item = (await verificationQueue()).find((row) => row.kind === route.kind && row.subject_id === route.id);
+  if (!item) {
+    return [bar, el('h1', { class: 'title', text: 'This check is no longer waiting' }), el('a', { href: '#/review', class: 'button button--quiet', text: 'Back to the queue' }), tabBar('profile')];
+  }
+  const docs = await docLinks(item.paths);
+  const identity = item.kind === 'identity';
+  const labels = identity ? ['ID or passport', 'Selfie'] : item.lister === 'agent' ? ['Fidelity Fund Certificate', 'Owner\u2019s mandate', 'More'] : ['Deed or rates account', 'More'];
+  const message = messageBox();
+
+  const shown = el('ul', { class: 'doc-list' }, docs.map((doc, n) => el('li', { class: 'stack stack--tight' }, [
+    el('p', { class: 'section__title', text: labels[Math.min(n, labels.length - 1)] }),
+    doc.pdf
+      ? el('a', { href: doc.url ?? '#', target: '_blank', rel: 'noopener noreferrer', class: 'button button--quiet', text: 'Open the PDF (link works for 15 minutes)' })
+      : el('img', { class: 'doc-list__image', src: doc.url ?? '', alt: labels[Math.min(n, labels.length - 1)] }),
+  ])));
+
+  const checklist = identity
+    ? ['The ID or passport is real and readable.', 'The face in the selfie matches the ID photo.', 'The name matches the name on the account.']
+    : item.lister === 'agent'
+      ? ['The Fidelity Fund Certificate is current (check it on the PPRA website).', 'The mandate names this address and is signed by the owner.', 'The agent\u2019s name matches their ID.']
+      : ['The deed or rates account shows this address.', 'It is in the name of the person on the ID.', 'The rates account is recent (last 3 months).'];
+
+  const note = el('textarea', { id: 'check-note', class: 'input input--area', rows: '3', maxlength: '500' });
+  const approve = el('button', { type: 'button', class: 'button button--primary', text: 'Approve' });
+  const reject = el('button', { type: 'button', class: 'button button--danger', text: 'Not accepted' });
+  async function decide(button, ok) {
+    message.clear();
+    if (!ok && note.value.trim().length < 5) {
+      message.show('Say what the person needs to send instead.');
+      note.focus();
+      return;
+    }
+    await whileBusy(button, ok ? 'Approving…' : 'Sending…', async () => {
+      try {
+        await decideCheck(item.kind, item.subject_id, ok, note.value.trim());
+        navigate('#/review');
+      } catch (error) {
+        message.show(error?.code === 'docs_not_deleted' ? error.message : friendlyListingError(error));
+      }
+    });
+  }
+  approve.addEventListener('click', () => decide(approve, true));
+  reject.addEventListener('click', () => decide(reject, false));
+
+  return [
+    bar,
+    el('a', { href: '#/review', class: 'text-link', text: '\u2190 Review queue' }),
+    el('h1', { class: 'title title--medium', text: identity ? `ID check: ${item.person_name}` : 'Ownership check' }),
+    ...(identity ? [] : [el('ul', { class: 'plain-list' }, [
+      `${item.street}, ${item.area}, ${item.city}`,
+      `${item.lister === 'agent' ? 'Agent' : 'Owner'}: ${item.person_name}`,
+    ].map((line) => el('li', { text: line })))]),
+    el('p', { class: 'lead', text: `Sent ${when(item.submitted_at)}` }),
+    shown,
+    el('section', { class: 'section' }, [
+      el('h2', { class: 'section__title', text: 'Check' }),
+      el('ul', { class: 'plain-list' }, checklist.map((line) => el('li', { text: line }))),
+      el('div', { class: 'field' }, [el('label', { for: 'check-note', class: 'field__label', text: 'Note to the person (needed when not accepted)' }), note]),
+      message.node,
+      approve,
+      reject,
+      el('p', { class: 'field__hint', text: 'The photos and documents are deleted as soon as you decide.' }),
+    ]),
     tabBar('profile'),
   ];
 }

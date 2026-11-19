@@ -13,6 +13,8 @@
 //   #/list/<id>/send         check and send for review (step 3)
 //   #/review                 the admins' review queue
 //   #/review/<id>            check one listing
+//   #/list/<id>/verify       Street Verified checks for a listing
+//   #/review/check/<kind>/<id>  an admin's ID or ownership check
 //   #/filters                Explore's filters (anyone)
 //   #/map                    live listings on a map (anyone)
 //   #/tours                  the tour feed (anyone)
@@ -29,7 +31,7 @@ const EXPLORE = { screen: 'explore' };
 const NAMED_SCREENS = ['signup', 'signin', 'forgot', 'new-password', 'profile', 'terms', 'privacy', 'my-listings', 'review', 'filters', 'map', 'enquiries', 'saved', 'tours'];
 
 /** Screens that only a signed-in person may open. */
-export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing', 'enquiries', 'enquiry', 'saved'];
+export const PROTECTED_SCREENS = ['profile', 'new-password', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing', 'enquiries', 'enquiry', 'saved', 'list-verify', 'review-check'];
 
 /** Screens that make no sense once signed in. */
 export const GUEST_SCREENS = ['signup', 'signin', 'forgot'];
@@ -46,6 +48,10 @@ export function parseRoute(hash) {
     if (parts.length === 2 && isUuid(parts[1])) return { screen: 'list-details', id: parts[1].toLowerCase() };
     if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'tour') return { screen: 'list-tour', id: parts[1].toLowerCase() };
     if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'send') return { screen: 'list-send', id: parts[1].toLowerCase() };
+    if (parts.length === 3 && isUuid(parts[1]) && parts[2] === 'verify') return { screen: 'list-verify', id: parts[1].toLowerCase() };
+  }
+  if (parts[0] === 'review' && parts.length === 4 && parts[1] === 'check' && ['identity', 'ownership'].includes(parts[2]) && isUuid(parts[3])) {
+    return { screen: 'review-check', kind: parts[2], id: parts[3].toLowerCase() };
   }
   if (parts[0] === 'review' && parts.length === 2 && isUuid(parts[1])) return { screen: 'review-listing', id: parts[1].toLowerCase() };
   if (parts[0] === 'enquiries' && parts.length === 2 && isUuid(parts[1])) return { screen: 'enquiry', id: parts[1].toLowerCase() };
@@ -72,6 +78,8 @@ export function hashFor(route) {
     case 'list-details': return `#/list/${route.id}`;
     case 'list-tour': return `#/list/${route.id}/tour`;
     case 'list-send': return `#/list/${route.id}/send`;
+    case 'list-verify': return `#/list/${route.id}/verify`;
+    case 'review-check': return `#/review/check/${route.kind}/${route.id}`;
     case 'review-listing': return `#/review/${route.id}`;
     case 'place': return `#/place/${route.id}`;
     case 'enquiry': return `#/enquiries/${route.id}`;
@@ -97,6 +105,6 @@ export function tabFor(screen) {
   if (screen === 'map') return 'map';
   if (screen === 'saved') return 'saved';
   if (screen === 'enquiries' || screen === 'enquiry') return 'enquiries';
-  if (['profile', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'review', 'review-listing'].includes(screen)) return 'profile';
+  if (['profile', 'my-listings', 'list-new', 'list-details', 'list-tour', 'list-send', 'list-verify', 'review', 'review-listing', 'review-check'].includes(screen)) return 'profile';
   return 'explore';
 }

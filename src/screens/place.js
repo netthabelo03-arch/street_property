@@ -113,9 +113,11 @@ export async function renderPlace({ session, route }) {
       el('p', { class: 'lead', text: publicPlace(listing) }),
     ]),
     el('div', { class: 'badge-row' }, [
+      ...(listing.verified_at ? [el('span', { class: 'chip chip--verified', text: 'Street Verified' })] : []),
       el('span', { class: 'chip chip--good', text: 'Filmed on site' }),
       el('span', { class: 'chip chip--good', text: 'Checked by Street Property' }),
     ]),
+    ...(listing.verified_at ? [el('p', { class: 'field__hint', text: `Street Verified: we checked the ${listing.lister === 'agent' ? 'agent\u2019s ID, Fidelity Fund Certificate and the owner\u2019s mandate' : 'owner\u2019s ID and that they own this place'}.` })] : []),
     ...(mine ? [] : [await heartButton({ session, listing })]),
     el('section', { class: 'section' }, [
       el('h2', { class: 'section__title', text: 'The place' }),

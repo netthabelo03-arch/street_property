@@ -12,6 +12,7 @@ function matches(listing, args) {
   if (args.p_kinds && !args.p_kinds.includes(listing.kind)) return false;
   if (args.p_features && !args.p_features.every((feature) => listing.features.includes(feature))) return false;
   if (args.p_parking && listing.parking < 1) return false;
+  if (args.p_verified && !listing.verified_at) return false;
   const words = String(args.p_text ?? '').toLowerCase().split(/\s+/).filter(Boolean);
   const where = `${listing.street} ${listing.area} ${listing.city}`.toLowerCase();
   return words.every((word) => where.includes(word));

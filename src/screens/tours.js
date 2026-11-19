@@ -93,7 +93,10 @@ export async function renderTours({ session, navigate }) {
       ? [el('span', { class: 'feed__price', text: formatRands(place.price_rands) }), el('span', { class: 'feed__per', text: ' / month' })]
       : [el('span', { class: 'feed__price', text: priceLine(place) })];
     info.replaceChildren(
-      el('span', { class: 'chip chip--good', text: 'Filmed on site' }),
+      el('div', { class: 'badge-row' }, [
+        ...(place.verified_at ? [el('span', { class: 'chip chip--verified', text: 'Street Verified' })] : []),
+        el('span', { class: 'chip chip--good', text: 'Filmed on site' }),
+      ]),
       el('p', {}, price),
       el('p', { class: 'feed__title', text: listingTitle(place) }),
       el('p', { class: 'feed__where', text: publicPlace(place) }),

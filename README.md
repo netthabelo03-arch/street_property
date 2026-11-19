@@ -6,7 +6,21 @@ Phone-first web app: plain HTML, CSS and JavaScript (no build step), Supabase fo
 
 Live: https://netthabelo03-arch.github.io/street_property/
 
-## Sprint 5 (this version): tour feed and saved places
+## Sprint 6 (this version): Street Verified
+
+- **Prove your place is real** (`#/list/<id>/verify`, from the listing's page in My listings). Three checks earn the badge:
+  1. **ID:** a photo of the ID or passport, and a selfie. Done once per person.
+  2. **Proof of ownership:** a title deed or rates account. Agents send their Fidelity Fund Certificate and the owner's mandate.
+  3. **Check-in at the property:** the video tour filmed at the address.
+- **Admins** check IDs and documents by hand in the review queue (`#/review/check/<kind>/<id>`), with a checklist, and approve or reject with a note.
+  - **Documents** sit in a private bucket that only admins can open, and are deleted as soon as a check is decided. Only the result is kept.
+  - **Later:** an ID-check provider and Lexis WinDeed can replace the hand checks without changing the screens.
+- **Badge:** a gold "Street Verified" badge on cards, the listing page, the tour feed and My listings, plus a "Street Verified only" filter.
+  - It comes off if the address changes.
+  - It is optional: listings still go live after the normal review.
+- **Database:** `supabase/007_verified.sql`; its dry run has 14 checks.
+
+## Sprint 5: tour feed and saved places
 
 - **Tour feed** (`#/tours`, from the Tours chip on Explore): one place at a time, full screen, its video tour playing room by room.
   - **Moving around:** swipe up for the next place and down for the one before; tap right or left for rooms. The next place's tour loads in advance, and more places load before the end.
@@ -82,7 +96,7 @@ Limits to watch:
 
 ## Set up
 
-1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`, then `supabase/005_enquiries.sql`, then `supabase/006_saved.sql`.
+1. **Supabase.** Create a project (region: Africa (Cape Town) if offered, else the nearest). In SQL Editor, run `supabase/001_profiles.sql`, then `supabase/002_listings.sql`, then `supabase/003_search.sql`, then `supabase/004_map.sql`, then `supabase/005_enquiries.sql`, then `supabase/006_saved.sql`, then `supabase/007_verified.sql`.
 2. **Connect the app.** In `src/config.js`, fill in `SUPABASE_URL` (Project Settings, Data API) and `SUPABASE_PUBLISHABLE_KEY` (Project Settings, API Keys, the `sb_publishable_…` key). Never put a secret key in the app.
 3. **Sign-in links.** In Supabase, Authentication, URL Configuration: set Site URL to the app's address and add it under Redirect URLs.
 4. **Admins.** After signing up, add yourself in SQL Editor: `insert into public.admins (user_id) values ('<your user id>');`
