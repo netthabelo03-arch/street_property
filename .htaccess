@@ -1,0 +1,35 @@
+# Street Property on HostAfrica (Apache / LiteSpeed shared hosting).
+
+# Always HTTPS.
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Only the app is public: not the source of the database scripts, tests or notes.
+RewriteRule ^(supabase|tests|docs|tools|\.git)(/|$) - [F,L]
+RewriteRule ^(package\.json|\.cpanel\.yml|README\.md)$ - [F,L]
+
+<IfModule mod_mime.c>
+  AddType text/javascript .js
+  AddType application/manifest+json .webmanifest
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Check with the server every time (a quick "not changed" answer when it is
+  # the same), so a phone never mixes old and new files after an update.
+  <FilesMatch "\.(html|js|css|webmanifest)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "\.(png|svg|ico|jpg|webp)$">
+    Header set Cache-Control "public, max-age=604800"
+  </FilesMatch>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Permissions-Policy "camera=(self), microphone=(self), geolocation=(self)"
+  Header always set Strict-Transport-Security "max-age=31536000"
+</IfModule>
+
+Options -Indexes
+ErrorDocument 404 /index.html

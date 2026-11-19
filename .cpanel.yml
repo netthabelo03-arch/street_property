@@ -1,0 +1,10 @@
+# cPanel Git Version Control: copies the app into public_html when you press
+# "Deploy HEAD Commit" (Git Version Control → Manage → Pull or Deploy).
+# Only the files the app needs are copied.
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=$HOME/public_html/
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -f index.html sw.js manifest.webmanifest .htaccess $DEPLOYPATH
+    - /bin/cp -Rf src icons $DEPLOYPATH

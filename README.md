@@ -155,7 +155,8 @@ Limits to watch:
 3. **Sign-in links.** In Supabase, Authentication, URL Configuration: set Site URL to the app's address and add it under Redirect URLs.
 4. **Admins.** After signing up, add yourself in SQL Editor: `insert into public.admins (user_id) values ('<your user id>');`
 5. **Host it.** Push to GitHub and turn on Pages (Settings, Pages, deploy from the `gh-pages` branch).
-6. **Before every deploy,** run `node tools/stamp.mjs`. It gives each file in `index.html` a versioned address, so phones never mix old and new files after an update. The tests fail if you forget.
+6. **HostAfrica (own domain):** follow `docs/hostafrica-setup.md` (cPanel Git Version Control, `.cpanel.yml` and `.htaccess` are in the repo).
+7. **Before every deploy,** run `node tools/stamp.mjs`. It gives each file in `index.html` a versioned address, so phones never mix old and new files after an update. The tests fail if you forget.
 
 ## Tests
 

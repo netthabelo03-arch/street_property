@@ -32,3 +32,14 @@ test('D-012: the service worker checks with the server and keeps one copy per fi
   assert.match(sw, /searchParams\.has\('v'\)/);
   assert.equal(fileVersion('abc'), 'ba7816bf8f');
 });
+
+test('HostAfrica: cPanel copies only the app, and .htaccess keeps the rest private', () => {
+  const yml = read('../.cpanel.yml');
+  assert.match(yml, /cp -f index\.html sw\.js manifest\.webmanifest \.htaccess \$DEPLOYPATH/);
+  assert.match(yml, /cp -Rf src icons \$DEPLOYPATH/);
+  assert.doesNotMatch(yml, /supabase|tests|docs/);
+  const access = read('../.htaccess');
+  assert.match(access, /RewriteRule \^\(supabase\|tests\|docs\|tools\|\\\.git\)\(\/\|\$\) - \[F,L\]/);
+  assert.match(access, /Header set Cache-Control "no-cache"/);
+  assert.match(access, /RewriteCond %\{HTTPS\} !=on/);
+});
